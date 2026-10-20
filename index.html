@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Green Light: A Great Gatsby Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Poiret+One&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080d; --panel:#10121b; --panel2:#171a26; --gold:#d8b45a; --gold2:#a8842e; --cream:#f2e8cf; --muted:#b9ad90;
+  --green:#3be08f; --jade:#1d6b4c; --red:#d0614f; --blue:#6aa6d8;
+  --disp:'Limelight', Georgia, serif; --deco:'Poiret One', 'Trebuchet MS', sans-serif; --body:'Lora', Georgia, serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--body);background:var(--bg);color:var(--cream);font-size:18.5px;line-height:1.55;min-height:100vh;
+  background-image:
+   repeating-linear-gradient(90deg, rgba(216,180,90,.035) 0 1px, transparent 1px 64px),
+   radial-gradient(ellipse at 50% -10%, #1b2140 0%, var(--bg) 60%);}
+.wrap{max-width:1240px;margin:0 auto;padding:16px 16px 70px}
+.card > *:not(.scene):not(.mapsvg){max-width:860px;margin-left:auto;margin-right:auto}
+.card > .scene.inline{max-width:none}
+.ctrls{position:fixed;right:14px;bottom:14px;z-index:30;display:flex;gap:8px}
+.ctrls button{background:rgba(0,0,0,.78);color:var(--gold);border:1px solid var(--gold2);padding:8px 14px;font-family:var(--deco);font-weight:700;font-size:13px;letter-spacing:.08em;cursor:pointer}
+.ctrls button:hover{background:rgba(216,180,90,.18)}
+.ctrls button.off{color:var(--muted);border-color:#444}
+.nowp{position:fixed;left:14px;bottom:14px;z-index:30;font-family:var(--deco);font-weight:700;font-size:13px;letter-spacing:.08em;color:var(--gold);background:rgba(0,0,0,.6);padding:7px 12px;border:1px solid rgba(216,180,90,.3);opacity:0;transition:opacity .6s;pointer-events:none}
+.nowp.on{opacity:1}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:12px;margin-right:8px;vertical-align:-1px}
+.eq i{width:3px;background:var(--gold);animation:eq .8s infinite ease-in-out alternate}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{from{height:3px}to{height:12px}}
+
+/* HUD */
+.hud{display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hud.on{display:flex}
+.chaps{display:flex;gap:6px;flex-wrap:wrap}
+.chaps span{width:34px;height:34px;display:grid;place-items:center;font-family:var(--deco);font-weight:700;font-size:14px;color:var(--muted);
+  border:1px solid rgba(216,180,90,.3);transform:rotate(45deg);transition:all .3s}
+.chaps span i{transform:rotate(-45deg);font-style:normal}
+.chaps span.done{background:rgba(216,180,90,.18);color:var(--gold);border-color:var(--gold)}
+.chaps span.here{background:var(--gold);color:#111;border-color:#fff;box-shadow:0 0 14px rgba(216,180,90,.6)}
+.stats{display:flex;gap:10px;align-items:center}
+.pill{font-family:var(--deco);font-weight:700;font-size:15px;letter-spacing:.06em;border:1px solid var(--gold2);padding:6px 12px;color:var(--gold);background:rgba(0,0,0,.35)}
+.pill b{color:var(--cream);font-size:17px;display:inline-block;transition:transform .2s}
+.pill b.bump{transform:scale(1.5)}
+button.pill{cursor:pointer}
+button.pill:hover{background:rgba(216,180,90,.15)}
+
+/* Card */
+.card{position:relative;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--gold2);padding:26px 28px 24px;
+  box-shadow:0 0 0 6px var(--bg), 0 0 0 7px rgba(216,180,90,.35), 0 25px 60px rgba(0,0,0,.6);animation:rise .5s ease-out;overflow:hidden}
+.card:before,.card:after{content:"";position:absolute;width:46px;height:46px;border:2px solid var(--gold);pointer-events:none;z-index:3}
+.card:before{top:8px;left:8px;border-right:none;border-bottom:none}
+.card:after{bottom:8px;right:8px;border-left:none;border-top:none}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.scene{display:block;width:calc(100% + 56px);height:auto;margin:-26px -28px 20px;border-bottom:2px solid var(--gold2)}
+.card h2 + .scene{margin-top:8px}
+.scene.inline{width:100%;margin:6px 0 14px;border:1px solid var(--gold2)}
+.eyebrow{font-family:var(--deco);font-weight:700;font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+h1,h2{font-family:var(--disp);font-weight:400;margin:.15em 0 .4em;line-height:1.15;color:var(--cream);letter-spacing:.03em}
+h2{font-size:clamp(26px,5vw,38px)}
+h3{font-family:var(--deco);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0 0 .4em;font-size:16px}
+p{margin:0 0 .85em}
+em{color:#fff3d4}
+.quote{position:relative;margin:16px 0;padding:16px 20px 14px 50px;border-left:2px solid var(--gold);background:rgba(216,180,90,.07)}
+.quote:before{content:"“";position:absolute;left:12px;top:-6px;font-family:var(--disp);font-size:56px;color:var(--gold)}
+.quote .qt{font-style:italic;font-size:19.5px;color:#fbf3dc}
+.quote cite{display:block;margin-top:6px;font-style:normal;font-family:var(--deco);font-weight:700;letter-spacing:.1em;font-size:13.5px;color:var(--gold)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:16px}
+.btn{font-family:var(--deco);font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;padding:12px 26px;cursor:pointer;
+  color:#111;background:linear-gradient(180deg,#f0d58a,var(--gold) 50%,var(--gold2));border:none;box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--gold);transition:transform .1s, filter .15s}
+.btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.ghost{background:transparent;color:var(--gold)}
+.task{font-family:var(--deco);font-weight:700;font-size:18px;color:var(--gold);letter-spacing:.04em;margin:4px 0 8px}
+.small{font-size:15px;color:var(--muted)}
+
+/* choices */
+.choices{display:grid;gap:10px;margin-top:10px}
+.choice{font:inherit;font-size:17.5px;text-align:left;padding:12px 16px;cursor:pointer;color:var(--cream);background:rgba(255,255,255,.03);
+  border:1px solid rgba(216,180,90,.35);display:flex;gap:12px;align-items:center;transition:all .15s}
+.choice:hover:not(:disabled){border-color:var(--gold);background:rgba(216,180,90,.1);transform:translateX(4px)}
+.choice:disabled{cursor:default;opacity:.5}
+.choice .k{flex:none;width:28px;height:28px;display:grid;place-items:center;font-family:var(--deco);font-weight:700;border:1px solid var(--gold);color:var(--gold);transform:rotate(45deg)}
+.choice .k i{transform:rotate(-45deg);font-style:normal}
+.choice.good{border-color:var(--green);background:rgba(59,224,143,.12);opacity:1}
+.choice.bad{border-color:var(--red);background:rgba(208,97,79,.14);opacity:1}
+.fb{margin-top:12px;padding:12px 16px;border:1px solid rgba(216,180,90,.3);background:rgba(0,0,0,.25);animation:rise .4s}
+.fb .v{font-family:var(--deco);font-weight:700;letter-spacing:.06em;font-size:18px;margin-bottom:4px}
+.good-t{color:var(--green)} .bad-t{color:var(--red)}
+
+/* hotspots */
+.spot{cursor:pointer}
+.spot .ring{transform-box:fill-box;transform-origin:center;animation:ring 1.6s infinite}
+@keyframes ring{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.spot.found .ring{animation:none;opacity:0}
+.spot.found .core{fill:var(--green)}
+.info{min-height:90px;padding:14px 16px;border:1px dashed rgba(216,180,90,.4);background:rgba(0,0,0,.25)}
+.info h3{margin-bottom:4px}
+.counter{font-family:var(--deco);font-weight:700;color:var(--gold);letter-spacing:.08em}
+
+/* truth or tale */
+.claim{padding:20px 22px;border:1px solid var(--gold);background:radial-gradient(ellipse at 50% 0%,rgba(216,180,90,.14),transparent 70%);text-align:center;animation:rise .35s}
+.claim .n{font-family:var(--deco);font-weight:700;color:var(--gold);letter-spacing:.15em}
+.claim .c{font-size:21px;font-style:italic;margin:8px 0 4px}
+.tt{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.tt .btn{min-width:150px}
+
+/* clock game */
+.gauge{position:relative;height:26px;border:1px solid var(--gold2);background:linear-gradient(90deg,rgba(255,255,255,.04) 0 22%,rgba(59,224,143,.35) 22% 61%,rgba(208,97,79,.35) 61% 100%);margin:10px 0}
+.gauge i{position:absolute;top:-6px;bottom:-6px;width:4px;background:var(--cream);left:0;box-shadow:0 0 8px #fff}
+.gauge span{position:absolute;top:3px;font-family:var(--deco);font-weight:700;font-size:13px;letter-spacing:.08em}
+
+/* timeline */
+.pool{display:grid;gap:8px;margin:10px 0}
+.ev{font:inherit;font-size:16.5px;text-align:left;padding:10px 14px;cursor:pointer;color:var(--cream);background:rgba(255,255,255,.04);border:1px solid rgba(216,180,90,.35)}
+.ev:hover{border-color:var(--gold)}
+.ev.shake{animation:shake .4s;border-color:var(--red)}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.tl{list-style:none;margin:10px 0;padding:0 0 0 22px;border-left:2px solid var(--gold)}
+.tl li{position:relative;margin:0 0 10px;padding-left:6px;animation:rise .35s}
+.tl li:before{content:"";position:absolute;left:-29px;top:7px;width:10px;height:10px;background:var(--gold);transform:rotate(45deg)}
+.tl li b{font-family:var(--deco);color:var(--gold);margin-right:6px}
+
+/* who said */
+.speakers{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.speakers button{font-family:var(--deco);font-weight:700;font-size:16px;letter-spacing:.08em;padding:9px 16px;cursor:pointer;background:transparent;color:var(--cream);border:1px solid var(--gold2)}
+.speakers button:hover:not(:disabled){background:rgba(216,180,90,.15);border-color:var(--gold)}
+.speakers button.good{background:rgba(59,224,143,.2);border-color:var(--green)}
+.speakers button.bad{background:rgba(208,97,79,.2);border-color:var(--red)}
+.streak{font-family:var(--deco);font-weight:700;color:var(--gold);text-align:center;margin-top:8px;letter-spacing:.08em}
+
+/* clue cards / people cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:12px 0}
+.clue{position:relative;min-height:215px;cursor:pointer;perspective:800px;background:none;border:none;padding:0;font:inherit;color:inherit;text-align:left}
+.clue .in{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}
+.clue.open .in{transform:rotateY(180deg)}
+.clue .f,.clue .b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid var(--gold2);padding:14px;display:flex;flex-direction:column;justify-content:center}
+.clue .f{background:repeating-linear-gradient(45deg,#151826 0 10px,#11131e 10px 20px);align-items:center;text-align:center}
+.clue .f b{font-family:var(--disp);font-size:28px;color:var(--gold)}
+.clue .f small{font-family:var(--deco);font-weight:700;letter-spacing:.12em;color:var(--muted)}
+.clue .b{display:block;overflow:auto;background:#1b1e2c;transform:rotateY(180deg);font-size:15.5px;line-height:1.45}
+.person{font:inherit;cursor:pointer;padding:14px 12px;text-align:center;background:rgba(255,255,255,.03);border:1px solid rgba(216,180,90,.35);color:var(--cream);transition:all .15s}
+.person .ic{font-size:30px;display:block}
+.person b{display:block;font-family:var(--deco);font-weight:700;font-size:16px;letter-spacing:.04em}
+.person small{display:block;font-size:13.5px;color:var(--muted);margin-top:4px}
+.person.sel{border-color:var(--gold);background:rgba(216,180,90,.18);box-shadow:inset 0 0 0 1px var(--gold)}
+.person.ok{border-color:var(--green);background:rgba(59,224,143,.13)}
+.person.no{border-color:var(--red);background:rgba(208,97,79,.13)}
+.person:disabled{cursor:default}
+
+/* symbol + history */
+.symbol{display:flex;gap:18px;align-items:center;padding:18px;border:1px solid var(--gold);background:radial-gradient(ellipse at 0% 50%,rgba(59,224,143,.12),transparent 60%);margin:14px 0;animation:rise .5s}
+.symbol .big{font-size:52px;flex:none;width:80px;height:80px;display:grid;place-items:center;border:1px solid var(--gold);transform:rotate(45deg);background:rgba(0,0,0,.4)}
+.symbol .big span{transform:rotate(-45deg)}
+.history{padding:16px 18px;border-top:2px solid var(--gold2);border-bottom:2px solid var(--gold2);background:rgba(216,180,90,.06);margin:14px 0}
+.history h3{color:var(--blue)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
+.modal.on{display:flex}
+.modal .card{max-width:760px;width:100%;max-height:90vh;overflow:auto}
+.cab{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.tile{padding:12px;border:1px solid rgba(216,180,90,.35);background:rgba(255,255,255,.03)}
+.tile .e{font-size:30px}
+.tile b{display:block;font-family:var(--deco);font-weight:700;color:var(--gold);letter-spacing:.06em}
+.tile small{display:block;font-size:14px;color:var(--muted)}
+.tile.locked{opacity:.4}
+
+/* title */
+.title{text-align:center}
+.title p{max-width:600px;margin:10px auto}
+.rank{font-family:var(--disp);font-size:34px;color:var(--gold);text-align:center;margin:6px 0}
+.scorebox{display:flex;justify-content:center;gap:30px;font-family:var(--deco);font-weight:700;letter-spacing:.1em;text-align:center;margin:8px 0}
+.scorebox b{display:block;font-family:var(--disp);font-size:34px;color:var(--cream);letter-spacing:0}
+.finalq .ln{opacity:0;animation:fade 1.2s forwards}
+@keyframes fade{to{opacity:1}}
+.mute{position:fixed;right:14px;bottom:14px;z-index:30;background:rgba(0,0,0,.7);color:var(--gold);border:1px solid var(--gold2);padding:8px 14px;font-family:var(--deco);font-weight:700;font-size:13px;letter-spacing:.08em;cursor:pointer}
+
+/* svg animation */
+.twk{animation:tw 3s infinite ease-in-out}
+@keyframes tw{0%,100%{opacity:.25}50%{opacity:1}}
+.gl-pulse{transform-box:fill-box;transform-origin:center;animation:glp 2.4s infinite ease-in-out}
+@keyframes glp{50%{opacity:.55}}
+.hint .gl-pulse{animation:glh 1s infinite ease-in-out}
+@keyframes glh{50%{transform:scale(2.6)}}
+.shimmer{animation:shim 2.6s infinite ease-in-out}
+@keyframes shim{50%{opacity:.3}}
+.sway{transform-box:fill-box;transform-origin:bottom center;animation:sway 1.1s infinite ease-in-out alternate}
+@keyframes sway{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+.flick{animation:flick 1.8s infinite}
+@keyframes flick{50%{opacity:.6}}
+.rain line{animation:rain .7s linear infinite}
+@keyframes rain{from{transform:translate(0,-60px)}to{transform:translate(-14px,60px)}}
+.heat{animation:heat 3s infinite ease-in-out}
+@keyframes heat{50%{transform:translateY(-3px);opacity:.5}}
+.speed{animation:speed .5s linear infinite}
+@keyframes speed{from{transform:translateX(30px);opacity:.9}to{transform:translateX(-40px);opacity:0}}
+.row-boat{animation:drift 6s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:translateX(0)}50%{transform:translateX(-26px)}}
+.oar{transform-box:fill-box;transform-origin:top center;animation:oar 1.5s ease-in-out infinite}
+@keyframes oar{50%{transform:rotate(28deg)}}
+.bob{animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion: reduce){.twk,.gl-pulse,.shimmer,.sway,.flick,.rain line,.heat,.speed,.row-boat,.oar,.bob,.spot .ring{animation:none!important}}
+@media (max-width:600px){
+  body{font-size:17.5px}.card{padding:20px 18px}.scene{width:calc(100% + 36px);margin:-20px -18px 16px}
+  .chaps span{width:26px;height:26px;font-size:11px}.symbol .big{width:62px;height:62px;font-size:38px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud" id="hud">
+    <div class="chaps" id="chaps"></div>
+    <div class="stats">
+      <div class="pill">✦ INSIGHT <b id="ins">0</b></div>
+      <button class="pill" id="symBtn">◆ SYMBOLS <b id="symN">0</b>/9</button>
+    </div>
+  </div>
+  <main id="app"></main>
+</div>
+<div class="modal" id="modal"><div class="card"><h2>Symbol Collection</h2><p class="small">Fitzgerald fills the novel with objects that mean more than they seem. Here are the ones you’ve unlocked.</p><div class="cab" id="cab"></div><div class="row"><span></span><button class="btn" id="closeM">Close</button></div></div></div>
+<div class="nowp" id="nowp"><span class="eq"><i></i><i></i><i></i></span><span id="nowt"></span></div>
+<div class="ctrls"><button id="fsBtn" title="Full screen">⤢ FULL SCREEN</button><button id="musBtn">♫ MUSIC ON</button><button id="mute">SFX ON</button></div>
+
+<script>
+/* ================= ART HELPERS ================= */
+let SID=0, rs=1;
+const P=n=>Math.round(n*10)/10;
+const seed=n=>{rs=n};
+const rnd=()=>{rs=rs*16807%2147483647;return (rs-1)/2147483646;};
+function wrap(sky,inner,label,h=340,cls='scene',idAttr=''){
+  SID++; const id=SID;
+  return `<svg ${idAttr} class="${cls}" viewBox="0 0 800 ${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
+  <defs><linearGradient id="sk${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+  <radialGradient id="gl${id}"><stop offset="0" stop-color="#fff3c4" stop-opacity=".9"/><stop offset=".4" stop-color="#ffd76a" stop-opacity=".35"/><stop offset="1" stop-color="#ffd76a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="gg${id}"><stop offset="0" stop-color="#b8ffd9" stop-opacity="1"/><stop offset=".3" stop-color="#3be08f" stop-opacity=".6"/><stop offset="1" stop-color="#3be08f" stop-opacity="0"/></radialGradient></defs>
+  <rect width="800" height="${h}" fill="url(#sk${id})"/>${inner.replace(/GLOW/g,`url(#gl${id})`).replace(/GREENG/g,`url(#gg${id})`)}</svg>`;
+}
+function stars(n,maxY,sd=3){seed(sd);let s='';for(let k=0;k<n;k++)s+=`<circle class="twk" cx="${P(rnd()*800)}" cy="${P(rnd()*maxY)}" r="${P(.5+rnd()*1.3)}" fill="#fff" style="animation-delay:${P(rnd()*3)}s"/>`;return s;}
+function glow(x,y,r){return `<circle cx="${x}" cy="${y}" r="${r}" fill="GLOW"/>`;}
+function man(x,y,s=1,c='#0b0c12',o={}){
+  let g=`<g fill="${c}" stroke="${c}" stroke-linecap="round">`;
+  g+=`<circle cx="${P(x)}" cy="${P(y-60*s)}" r="${P(6.5*s)}" stroke="none"/>`;
+  if(o.hat) g+=`<rect x="${P(x-9*s)}" y="${P(y-67*s)}" width="${P(18*s)}" height="${P(2.5*s)}" stroke="none"/><rect x="${P(x-6*s)}" y="${P(y-72*s)}" width="${P(12*s)}" height="${P(6*s)}" stroke="none"/>`;
+  g+=`<path d="M${P(x-10*s)} ${P(y-51*s)} Q${P(x)} ${P(y-55*s)} ${P(x+10*s)} ${P(y-51*s)} L${P(x+8.5*s)} ${P(y-24*s)} L${P(x-8.5*s)} ${P(y-24*s)}Z" stroke="none"/>`;
+  g+=`<rect x="${P(x-7.5*s)}" y="${P(y-26*s)}" width="${P(6*s)}" height="${P(26*s)}" stroke="none"/><rect x="${P(x+1.5*s)}" y="${P(y-26*s)}" width="${P(6*s)}" height="${P(26*s)}" stroke="none"/>`;
+  const w=P(3.6*s);
+  if(o.armsOut) g+=`<path d="M${P(x-9*s)} ${P(y-48*s)} L${P(x-32*s)} ${P(y-52*s)} M${P(x+9*s)} ${P(y-48*s)} L${P(x+32*s)} ${P(y-52*s)}" stroke-width="${w}" fill="none"/>`;
+  else if(o.armUp) g+=`<path d="M${P(x-9.5*s)} ${P(y-49*s)} L${P(x-11*s)} ${P(y-28*s)} M${P(x+9*s)} ${P(y-48*s)} L${P(x+20*s)} ${P(y-68*s)}" stroke-width="${w}" fill="none"/>`;
+  else g+=`<path d="M${P(x-9.5*s)} ${P(y-49*s)} L${P(x-11*s)} ${P(y-28*s)} M${P(x+9.5*s)} ${P(y-49*s)} L${P(x+11*s)} ${P(y-28*s)}" stroke-width="${w}" fill="none"/>`;
+  if(o.glass) g+=`<path d="M${P(x+11*s)} ${P(y-30*s)} l${P(-3*s)} ${P(-8*s)} h${P(6*s)} z" fill="#ffe08a" stroke="none"/>`;
+  return g+'</g>';
+}
+function woman(x,y,s=1,dress='#c9a24a',o={}){
+  const skin=o.skin||dress, hair=o.hair||'#0b0b10';
+  let g=`<g stroke-linecap="round">`;
+  g+=`<path d="M${P(x-4*s)} ${P(y-14*s)} L${P(x-5*s)} ${P(y)} M${P(x+4*s)} ${P(y-14*s)} L${P(x+5*s)} ${P(y)}" stroke="${o.legs||'#0b0b10'}" stroke-width="${P(2.6*s)}"/>`;
+  g+=`<path d="M${P(x-7*s)} ${P(y-50*s)} L${P(x+7*s)} ${P(y-50*s)} L${P(x+9*s)} ${P(y-32*s)} L${P(x+15*s)} ${P(y-13*s)} L${P(x-15*s)} ${P(y-13*s)} L${P(x-9*s)} ${P(y-32*s)}Z" fill="${dress}"/>`;
+  g+=`<path d="M${P(x-15*s)} ${P(y-13*s)} L${P(x+15*s)} ${P(y-13*s)}" stroke="${o.fringe||'#fff3c4'}" stroke-width="${P(1.4*s)}" stroke-dasharray="${P(1.5*s)} ${P(1.5*s)}" opacity=".7"/>`;
+  const arm=o.dance?`M${P(x-7*s)} ${P(y-48*s)} L${P(x-14*s)} ${P(y-30*s)} M${P(x+7*s)} ${P(y-48*s)} L${P(x+16*s)} ${P(y-68*s)}`:`M${P(x-7*s)} ${P(y-48*s)} L${P(x-11*s)} ${P(y-28*s)} M${P(x+7*s)} ${P(y-48*s)} L${P(x+11*s)} ${P(y-28*s)}`;
+  g+=`<path d="${arm}" stroke="${o.arms||dress}" stroke-width="${P(2.8*s)}"/>`;
+  g+=`<circle cx="${P(x)}" cy="${P(y-57*s)}" r="${P(6*s)}" fill="${skin}"/>`;
+  g+=`<path d="M${P(x-7*s)} ${P(y-55*s)} Q${P(x-7*s)} ${P(y-66*s)} ${P(x)} ${P(y-65*s)} Q${P(x+7*s)} ${P(y-66*s)} ${P(x+7*s)} ${P(y-55*s)} L${P(x+7.5*s)} ${P(y-52*s)} L${P(x+4*s)} ${P(y-54*s)} L${P(x-4*s)} ${P(y-54*s)} L${P(x-7.5*s)} ${P(y-52*s)}Z" fill="${hair}"/>`;
+  if(o.band) g+=`<path d="M${P(x-6.5*s)} ${P(y-60*s)} L${P(x+6.5*s)} ${P(y-60*s)}" stroke="${o.band}" stroke-width="${P(1.6*s)}"/><circle cx="${P(x+5*s)}" cy="${P(y-63*s)}" r="${P(2*s)}" fill="${o.band}"/>`;
+  return g+'</g>';
+}
+function car(x,y,s=1,c='#e8c24a',flip=false){
+  return `<g transform="translate(${x} ${y}) scale(${flip?-s:s} ${s})">
+   <path d="M-66 -12 L-66 -26 Q-64 -30 -56 -30 L6 -30 L16 -46 L44 -46 L50 -30 L62 -28 Q70 -26 70 -18 L70 -12 Z" fill="${c}"/>
+   <path d="M20 -44 L42 -44 L46 -31 L13 -31Z" fill="#20283c" opacity=".8"/>
+   <path d="M-66 -24 L6 -24" stroke="#7a5a18" stroke-width="1.5"/>
+   <path d="M-50 -12 Q-50 -26 -36 -26 Q-22 -26 -22 -12 M30 -12 Q30 -26 44 -26 Q58 -26 58 -12" fill="${c}" stroke="#7a5a18" stroke-width="1.5"/>
+   <circle cx="-36" cy="-10" r="11" fill="#111"/><circle cx="-36" cy="-10" r="5" fill="#d8b45a"/>
+   <circle cx="44" cy="-10" r="11" fill="#111"/><circle cx="44" cy="-10" r="5" fill="#d8b45a"/>
+   <rect x="-72" y="-34" width="8" height="18" fill="#c9c9c9"/><circle cx="-70" cy="-20" r="4" fill="#fff3c4"/>
+   <rect x="66" y="-34" width="4" height="14" fill="#555"/></g>`;
+}
+function mansion(x,base,w,h,c,sd,o={}){
+  seed(sd); let s='';
+  const tw=w*.16;
+  s+=`<rect x="${x}" y="${base-h}" width="${w}" height="${h}" fill="${c}"/>`;
+  s+=`<path d="M${x-6} ${base-h} L${x+14} ${base-h-26} L${x+w-14} ${base-h-26} L${x+w+6} ${base-h}Z" fill="${o.roof||'#1a1c28'}"/>`;
+  if(o.tower!==false){
+    s+=`<rect x="${x+w-tw}" y="${base-h-56}" width="${tw}" height="${h+56}" fill="${c}"/><path d="M${x+w-tw-4} ${base-h-56} L${x+w-tw/2} ${base-h-100} L${x+w+4} ${base-h-56}Z" fill="${o.roof||'#1a1c28'}"/>`;
+    s+=`<rect x="${x+w-tw/2-4}" y="${base-h-48}" width="8" height="14" fill="${o.lit?'#ffd76a':'#2a2c38'}"/>`;
+  }
+  const cols=Math.floor((w-tw-10)/22), rows=Math.max(2,Math.floor(h/30));
+  for(let r=0;r<rows;r++)for(let k=0;k<cols;k++){
+    const on=o.lit && rnd()<(o.litP||.8);
+    s+=`<rect x="${P(x+10+k*22)}" y="${P(base-h+10+r*28)}" width="10" height="16" fill="${on?'#ffd76a':'#262838'}" ${on&&rnd()<.25?'class="flick"':''}/>`;
+  }
+  if(o.lit) s+=glow(x+w/2,base-h/2,w*.75);
+  return s;
+}
+function skyline(base,color,sd,x0=0,x1=800,maxH=140,win=false){
+  seed(sd);let s='',x=x0;
+  while(x<x1){const w=16+rnd()*30,h=30+rnd()*maxH;s+=`<rect x="${P(x)}" y="${P(base-h)}" width="${P(w)}" height="${P(h)}" fill="${color}"/>`;
+    if(rnd()<.35){s+=`<rect x="${P(x+w*.2)}" y="${P(base-h-12)}" width="${P(w*.6)}" height="12" fill="${color}"/><rect x="${P(x+w*.4)}" y="${P(base-h-30)}" width="${P(w*.2)}" height="18" fill="${color}"/>`;}
+    if(rnd()<.15){s+=`<path d="M${P(x+w/2-2)} ${P(base-h-30)} L${P(x+w/2)} ${P(base-h-58)} L${P(x+w/2+2)} ${P(base-h-30)}Z" fill="${color}"/>`;}
+    if(win){for(let k=0;k<4;k++)if(rnd()<.6)s+=`<rect x="${P(x+3+rnd()*(w-6))}" y="${P(base-h+8+rnd()*(h-14))}" width="2.5" height="3" fill="#ffd76a" opacity=".8"/>`;}
+    x+=w+1;}
+  return s;
+}
+function tree(x,base,s=1,c='#0e1a12'){return `<g fill="${c}"><rect x="${x-3*s}" y="${base-30*s}" width="${6*s}" height="${30*s}"/><circle cx="${x}" cy="${base-48*s}" r="${24*s}"/><circle cx="${x-18*s}" cy="${base-36*s}" r="${16*s}"/><circle cx="${x+18*s}" cy="${base-38*s}" r="${17*s}"/></g>`;}
+function rainLines(n,sd,h=340){seed(sd);let s='<g class="rain" stroke="#c8d4e8" stroke-opacity=".35" stroke-width="1.2">';for(let k=0;k<n;k++){const x=rnd()*840,y=rnd()*h;s+=`<line x1="${P(x)}" y1="${P(y)}" x2="${P(x-6)}" y2="${P(y+18)}" style="animation-delay:${P(rnd()*.7)}s"/>`;}return s+'</g>';}
+function sunburst(x,y,n,len,c,op){let s='';for(let k=0;k<n;k++){const a=Math.PI+k*Math.PI/(n-1),w=.035;s+=`<path d="M${x} ${y} L${P(x+Math.cos(a-w)*len)} ${P(y+Math.sin(a-w)*len)} L${P(x+Math.cos(a+w)*len)} ${P(y+Math.sin(a+w)*len)}Z" fill="${c}" opacity="${op}"/>`;}return s;}
+function water(y,h,c){return `<rect x="0" y="${y}" width="800" height="${h}" fill="${c}"/>`+Array.from({length:14},(_,k)=>`<rect class="shimmer" x="${(k*97)%760}" y="${y+8+(k*13)%(h-12)}" width="${30+(k*17)%50}" height="1.5" fill="#9fb6e8" opacity=".35" style="animation-delay:${(k%5)*.4}s"/>`).join('');}
+
+/* ================= SCENES ================= */
+const SC={
+ title:()=>wrap(['#050608','#121733'],
+   stars(90,200,2)+sunburst(400,250,19,260,'#d8b45a',.08)+
+   `<circle cx="400" cy="250" r="150" fill="none" stroke="#d8b45a" stroke-opacity=".35"/><circle cx="400" cy="250" r="120" fill="none" stroke="#d8b45a" stroke-opacity=".2"/>`+
+   skyline(282,'#0b0d16',4,0,800,120,true)+water(282,58,'#060812')+
+   `<circle cx="600" cy="276" r="40" fill="GREENG" class="gl-pulse"/><circle cx="600" cy="276" r="3.5" fill="#c8ffe2"/><rect x="598" y="284" width="4" height="40" fill="#3be08f" opacity=".25"/>`+
+   `<text x="400" y="150" text-anchor="middle" font-family="Limelight, Georgia, serif" font-size="76" fill="#f2e8cf" letter-spacing="6">GREEN LIGHT</text>
+    <text x="400" y="190" text-anchor="middle" font-family="Poiret One, sans-serif" font-weight="700" font-size="20" fill="#d8b45a" letter-spacing="9">A GREAT GATSBY GAME</text>
+    <path d="M250 205 H550 M300 213 H500" stroke="#d8b45a" stroke-width="1.2"/>`,'Green Light title art: a city skyline with a green light across the water'),
+ bay:(interactive)=>wrap(['#04050c','#18214a'],
+   stars(120,170,5)+`<circle cx="110" cy="60" r="18" fill="#efe6c8"/><circle cx="118" cy="55" r="16" fill="#0a0e24" opacity=".25"/>`+
+   `<path d="M360 196 Q520 178 800 186 L800 200 L360 200Z" fill="#0b1020"/>`+
+   mansion(640,192,110,34,'#c9c3b0',9,{lit:true,tower:false,litP:.5,roof:'#3a3a48'})+
+   `<path d="M612 199 L612 192" stroke="#3a3d4e" stroke-width="2"/><path d="M590 194 L612 199" stroke="#3a3d4e" stroke-width="2"/>`+
+   water(198,82,'#070d22')+
+   `<rect x="610" y="203" width="4" height="60" fill="#3be08f" opacity=".18" class="shimmer"/>`+
+   `<g id="gl" class="gl-pulse"><circle cx="612" cy="199" r="16" fill="GREENG"/></g><circle cx="612" cy="199" r="2.6" fill="#d6ffea"/>`+
+   `<path d="M0 340 L0 276 Q300 262 540 280 Q680 290 800 284 L800 340Z" fill="#050a07"/>`+
+   mansion(20,270,230,110,'#141625',13,{lit:true,litP:.6})+
+   tree(300,280,1.2,'#04080a')+man(452,322,1.55,'#020305',{armsOut:true}),'A night view across the bay from West Egg, with a lone figure reaching toward the water',340,'scene'+(interactive?' inline':''),interactive?'id="bay"':''),
+ valley:(interactive)=>wrap(['#7f8187','#c7c3b8'],
+   `<path d="M0 230 Q90 170 170 216 Q240 160 330 214 Q420 176 520 220 Q600 190 680 226 Q740 206 800 222 L800 340 L0 340Z" fill="#9a9890"/>`+
+   `<path d="M0 262 Q120 220 260 258 Q380 226 480 262 Q620 234 800 260 L800 340 L0 340Z" fill="#85837c"/>`+
+   `<g transform="translate(540 30)"><rect x="18" y="100" width="6" height="110" fill="#5a5850"/><rect x="200" y="100" width="6" height="110" fill="#5a5850"/>
+     <rect x="0" y="0" width="226" height="104" fill="#d9d2bd" stroke="#6a6658" stroke-width="3"/>
+     <rect x="8" y="8" width="210" height="88" fill="#cfc7b0"/>
+     <ellipse cx="72" cy="50" rx="40" ry="22" fill="#f4f1e6"/><circle cx="72" cy="50" r="17" fill="#3e78b8"/><circle cx="72" cy="50" r="7" fill="#0b0b10"/>
+     <ellipse cx="154" cy="50" rx="40" ry="22" fill="#f4f1e6"/><circle cx="154" cy="50" r="17" fill="#3e78b8"/><circle cx="154" cy="50" r="7" fill="#0b0b10"/>
+     <circle cx="72" cy="50" r="34" fill="none" stroke="#d4a72c" stroke-width="7"/><circle cx="154" cy="50" r="34" fill="none" stroke="#d4a72c" stroke-width="7"/>
+     <path d="M106 50 Q113 42 120 50" stroke="#d4a72c" stroke-width="6" fill="none"/>
+     <text x="113" y="96" text-anchor="middle" font-family="Poiret One, sans-serif" font-weight="700" font-size="9" fill="#7a7466" letter-spacing="2">DOCTOR T. J. ECKLEBURG · OCULIST</text></g>`+
+   `<path d="M0 248 L800 248" stroke="#5f5d56" stroke-width="3"/><g transform="translate(260 232)" fill="#55534c"><rect x="0" y="0" width="70" height="16"/><rect x="74" y="2" width="60" height="14"/><rect x="138" y="2" width="60" height="14"/></g>`+
+   `<rect x="60" y="214" width="150" height="68" fill="#b3ada0"/><path d="M52 214 L135 196 L218 214Z" fill="#7b766c"/><rect x="110" y="238" width="40" height="44" fill="#2e2c28"/>
+    <rect x="72" y="220" width="126" height="12" fill="#e7e1cf"/><text x="135" y="229.5" text-anchor="middle" font-family="Poiret One, sans-serif" font-weight="700" font-size="8.5" fill="#3a382f">REPAIRS · GEORGE B. WILSON</text>
+    <rect x="236" y="250" width="12" height="32" fill="#8c3a2e"/><circle cx="242" cy="248" r="6" fill="#8c3a2e"/>`+
+   woman(176,284,1.15,'#2b3a6e',{skin:'#d8b89a',hair:'#3a2a1a'})+
+   man(380,294,.9,'#6f6d66')+man(420,292,.85,'#76746c')+man(470,296,.95,'#6a6861')+
+   `<path d="M0 300 Q400 284 800 300 L800 340 L0 340Z" fill="#6f6c66"/>`,'The gray Valley of Ashes with Wilson’s garage and a giant billboard of eyes',340,'scene'+(interactive?' inline':''),interactive?'id="valley"':''),
+ party:(interactive)=>wrap(['#0d0720','#2b1748'],
+   stars(60,120,9)+mansion(250,236,300,130,'#171a2a',21,{lit:true,litP:.85})+
+   `<path d="M0 90 Q200 150 400 110 Q600 70 800 120" stroke="#d8b45a" stroke-opacity=".5" fill="none"/>`+
+   (()=>{let s='';for(let k=0;k<=25;k++){const t=k/25,x=t*800;const y=(1-t)*(1-t)*90+2*(1-t)*t*130+t*t*110;const cs=['#ffd76a','#ff8fb1','#7fd3ff','#9dffb5'];s+=`<circle cx="${P(x)}" cy="${P(y+4)}" r="4" fill="${cs[k%4]}" class="flick" style="animation-delay:${(k%5)*.3}s"/>`;}return s;})()+
+   `<rect x="0" y="236" width="800" height="104" fill="#0b1d16"/><path d="M0 236 L800 236" stroke="#d8b45a" stroke-opacity=".4"/>`+
+   `<rect x="30" y="232" width="120" height="10" fill="#d8b45a" opacity=".6"/>`+
+   man(55,232,.75,'#04050a')+man(90,232,.75,'#04050a',{armUp:true})+man(125,232,.75,'#04050a')+
+   woman(160,302,1.25,'#e8c84a',{dance:true,band:'#fff3c4'})+man(205,304,1.2,'#05060b')+
+   man(300,312,1.25,'#05060b',{glass:true})+woman(345,310,1.2,'#c94f7a',{band:'#ffd76a'})+
+   `<rect x="400" y="236" width="56" height="4" fill="#d8b45a"/>`+man(430,232,.95,'#0a0b12')+
+   woman(560,306,1.15,'#3fb2a6',{dance:true})+man(600,308,1.15,'#05060b',{armUp:true})+
+   woman(655,312,1.25,'#d8d2c0',{band:'#3be08f',hair:'#2a1a12'})+man(720,310,1.15,'#05060b',{glass:true})+
+   `<g transform="translate(470 300)"><path d="M0 0 L-12 -30 L12 -30Z" fill="#ffd76a" opacity=".5"/><path d="M-10 -32 L10 -32 L0 -40Z" fill="#ffd76a" opacity=".8"/></g>`,'A glittering night party at Gatsby’s mansion with dancing guests',340,'scene'+(interactive?' inline':''),interactive?'id="party"':''),
+ bridge:()=>wrap(['#8fb8d8','#f3e3c2'],
+   skyline(220,'#6d7a94',31,380,800,150,false)+skyline(232,'#4e5872',32,420,800,90,false)+
+   `<rect x="0" y="230" width="800" height="110" fill="#5c7d98"/>`+water(232,40,'#5c7d98')+
+   `<g fill="#2f3446"><rect x="0" y="262" width="800" height="10"/>
+     <path d="M90 262 L110 150 L130 262Z"/><path d="M330 262 L350 150 L370 262Z"/><path d="M570 262 L590 150 L610 262Z"/>
+     <path d="M0 236 L110 152 L230 222 L350 152 L470 222 L590 152 L700 222 L800 160" fill="none" stroke="#2f3446" stroke-width="4"/>
+     <path d="M0 252 L110 168 L230 238 L350 168 L470 238 L590 168 L700 238 L800 176" fill="none" stroke="#2f3446" stroke-width="2"/></g>`+
+   Array.from({length:30},(_,k)=>`<path d="M${k*27} 262 L${k*27+13} 240" stroke="#2f3446" stroke-width="1.5"/>`).join('')+
+   `<g><g class="speed" stroke="#fff" stroke-width="2" opacity=".7"><path d="M200 248 h-30 M206 240 h-40 M196 256 h-24"/></g>${car(300,262,1,'#ecd27a')}</g>`+
+   `<rect x="0" y="272" width="800" height="68" fill="#4a6782"/>`,'Gatsby’s cream-colored car crossing the Queensboro Bridge toward Manhattan'),
+ parlor:(interactive)=>wrap(['#2a2f3d','#3c4253'],
+   `<rect x="440" y="40" width="240" height="190" fill="#7f8ea6"/><rect x="440" y="40" width="240" height="190" fill="none" stroke="#e8dfc8" stroke-width="10"/><path d="M560 40 V230 M440 135 H680" stroke="#e8dfc8" stroke-width="6"/>`+
+   `<clipPath id="win"><rect x="445" y="45" width="230" height="180"/></clipPath><g clip-path="url(#win)">${rainLines(60,4,240).replace('<g class="rain"','<g class="rain" transform="translate(440 0)"')}</g>`+
+   `<rect x="0" y="230" width="800" height="110" fill="#2a2420"/><rect x="40" y="150" width="330" height="16" fill="#e8dfc8"/><rect x="60" y="166" width="290" height="174" fill="#4a3a30"/><rect x="120" y="200" width="170" height="140" fill="#140f0c"/>`+
+   `<g id="clock" transform="rotate(0 290 150)"><rect x="236" y="92" width="62" height="58" rx="6" fill="#6b4a2a" stroke="#d8b45a" stroke-width="2"/><path d="M236 104 Q267 70 298 104" fill="#6b4a2a" stroke="#d8b45a" stroke-width="2"/><circle cx="267" cy="118" r="20" fill="#f4ecd4" stroke="#d8b45a" stroke-width="2"/><path d="M267 118 L267 104 M267 118 L276 122" stroke="#222" stroke-width="2"/></g>`+
+   `<g fill="#0c0d14"><circle cx="180" cy="82" r="18"/><path d="M150 150 Q148 104 180 100 Q214 104 214 150Z"/><path d="M200 108 L238 96" stroke="#0c0d14" stroke-width="9" stroke-linecap="round"/></g>`+
+   `<g fill="#f1c6cf"><circle cx="90" cy="140" r="8"/><circle cx="104" cy="136" r="9"/><circle cx="96" cy="128" r="7"/></g><rect x="88" y="142" width="18" height="10" fill="#3a5a8a"/>`+
+   glow(560,135,140),'Nick’s rainy living room, with Gatsby leaning on the mantel next to a clock',340,'scene'+(interactive?' inline':''),interactive?'id="parlor"':''),
+ yacht:()=>wrap(['#f0884a','#fbd9a0'],
+   `<circle cx="560" cy="210" r="46" fill="#ffe9b0"/>`+glow(560,210,150)+water(228,112,'#3f5a7a')+
+   `<rect x="550" y="232" width="20" height="90" fill="#ffd9a0" opacity=".25" class="shimmer"/>`+
+   `<g class="bob"><path d="M240 230 L470 230 L450 254 L262 254Z" fill="#f4ede0"/><rect x="290" y="206" width="120" height="24" fill="#e8dfcc"/><rect x="306" y="212" width="12" height="9" fill="#2a3a52"/><rect x="330" y="212" width="12" height="9" fill="#2a3a52"/><rect x="354" y="212" width="12" height="9" fill="#2a3a52"/>
+     <rect x="380" y="190" width="10" height="18" fill="#2a2a2a"/><path d="M340 206 L340 130" stroke="#3a2a1a" stroke-width="3"/><path d="M340 130 L420 200" stroke="#3a2a1a" stroke-width="1"/><path d="M340 130 L270 204" stroke="#3a2a1a" stroke-width="1"/>
+     <text x="356" y="248" font-family="Poiret One, sans-serif" font-weight="700" font-size="11" fill="#7a5a28" letter-spacing="2">TUOLOMEE</text></g>`+
+   `<g class="bob" style="animation-delay:.6s"><path d="M110 268 L170 268 L162 280 L118 280Z" fill="#5a3a22"/>${man(140,270,.6,'#1a120c')}<path d="M126 252 L100 286 M154 252 L180 286" stroke="#3a2a1a" stroke-width="2"/></g>`,'Young James Gatz rowing out to Dan Cody’s yacht at sunset'),
+ plaza:()=>wrap(['#f26b2e','#ffd28a'],
+   `<circle cx="680" cy="70" r="40" fill="#fff4c8"/>`+glow(680,70,170)+
+   `<g class="heat">${skyline(250,'#c46a3e',51,0,800,90)}</g>`+
+   `<rect x="240" y="80" width="320" height="170" fill="#eadfc8"/><path d="M230 80 L262 40 L538 40 L570 80Z" fill="#5f8f78"/>
+    <path d="M250 40 L250 20 L270 20 L270 40 M530 40 L530 20 L550 20 L550 40" fill="#5f8f78"/>
+    ${Array.from({length:6},(_,r)=>Array.from({length:11},(_,k)=>`<rect x="${256+k*27}" y="${92+r*24}" width="12" height="15" fill="#6b7a8c"/>`).join('')).join('')}
+    <rect x="370" y="216" width="60" height="34" fill="#3a2a1a"/><rect x="355" y="208" width="90" height="8" fill="#b8a888"/>
+    <text x="400" y="72" text-anchor="middle" font-family="Poiret One, sans-serif" font-weight="700" font-size="14" fill="#eadfc8" letter-spacing="6">THE PLAZA</text>`+
+   tree(110,262,1.3,'#3d5a2a')+tree(180,266,1.1,'#456a30')+tree(650,264,1.2,'#3d5a2a')+tree(730,266,1.3,'#456a30')+
+   `<rect x="0" y="262" width="800" height="78" fill="#7a6a58"/>`+car(150,300,.8,'#1f3d6e')+car(520,302,.8,'#ecd27a',true)+
+   `<g class="heat" stroke="#fff6d0" stroke-width="2" opacity=".4" fill="none"><path d="M60 300 q20 -10 40 0 t40 0"/><path d="M300 310 q20 -10 40 0 t40 0"/><path d="M620 318 q20 -10 40 0 t40 0"/></g>`,'The Plaza Hotel on a scorching summer afternoon'),
+ deathcar:()=>wrap(['#05060a','#1e1d24'],
+   `<g opacity=".55" transform="translate(560 40) scale(.8)"><rect x="0" y="0" width="226" height="104" fill="#3a382f"/><circle cx="72" cy="50" r="17" fill="#2e4f7a"/><circle cx="154" cy="50" r="17" fill="#2e4f7a"/><circle cx="72" cy="50" r="34" fill="none" stroke="#8a7020" stroke-width="7"/><circle cx="154" cy="50" r="34" fill="none" stroke="#8a7020" stroke-width="7"/></g>`+
+   `<path d="M0 240 Q120 214 260 236 Q420 208 560 240 Q700 220 800 236 L800 340 L0 340Z" fill="#26252a"/>`+
+   `<path d="M0 290 L800 290" stroke="#3a393f" stroke-width="40"/><path d="M0 290 L800 290" stroke="#6a6650" stroke-dasharray="20 18" stroke-width="2"/>`+
+   `<path d="M540 280 L800 230 L800 330Z" fill="#fff3c4" opacity=".12"/>`+
+   `<g class="speed" stroke="#fff" stroke-width="2.5" opacity=".6"><path d="M610 280 h60 M620 292 h70 M604 302 h50"/></g>`+car(470,306,1.15,'#ecd27a',true)+
+   `<rect x="120" y="230" width="90" height="52" fill="#3a3832"/><rect x="138" y="246" width="22" height="36" fill="#ffd76a" opacity=".5"/>`,'A yellow car speeding through the Valley of Ashes at night'),
+ funeral:()=>wrap(['#5d6470','#a7adb5'],
+   mansion(380,250,320,140,'#3a3e4a',41,{lit:false})+tree(110,260,1.4,'#3a4a3a')+tree(200,262,1.1,'#42523f')+
+   `<rect x="0" y="250" width="800" height="90" fill="#44503f"/>`+car(260,300,.9,'#1c1c22')+
+   `<g fill="#1a1c22"><path d="M440 268 q16 -14 32 0z"/><path d="M500 266 q16 -14 32 0z"/><path d="M560 270 q16 -14 32 0z"/></g>`+
+   man(456,318,1,'#15161c')+man(516,316,1,'#15161c',{hat:true})+man(576,320,.95,'#15161c')+
+   rainLines(90,8),'A rainy funeral outside Gatsby’s empty mansion'),
+ boat:()=>wrap(['#03040a','#141a3a'],
+   stars(140,190,13)+water(200,140,'#050a1c')+
+   `<path d="M0 200 Q400 188 800 200" stroke="#1a2348"/>`+
+   `<circle cx="660" cy="196" r="40" fill="GREENG" class="gl-pulse"/><circle cx="660" cy="196" r="3" fill="#d6ffea"/><rect x="658" y="204" width="4" height="70" fill="#3be08f" opacity=".2" class="shimmer"/>`+
+   `<g class="row-boat"><path d="M300 270 L420 270 L404 290 L316 290Z" fill="#3a2a1e"/>${man(360,274,.8,'#06070c')}<path class="oar" d="M352 236 L322 300" stroke="#6a5038" stroke-width="3"/><path class="oar" d="M368 236 L398 300" stroke="#6a5038" stroke-width="3" style="animation-delay:.1s"/></g>`+
+   `<g stroke="#9fb6e8" stroke-opacity=".35" fill="none"><path class="shimmer" d="M440 300 q20 -6 40 0 t40 0"/><path class="shimmer" d="M480 316 q20 -6 40 0 t40 0" style="animation-delay:1s"/><path class="shimmer" d="M520 296 q20 -6 40 0 t40 0" style="animation-delay:.5s"/></g>`,'A lone rower on dark water, pulling toward a distant green light')
+};
+
+/* ================= GAME DATA ================= */
+const SYMBOLS=[
+ {e:'🟢',n:'The Green Light',d:'Gatsby’s dream: Daisy, and the future he believes he can still reach.'},
+ {e:'👁️',n:'The Eyes of Dr. T. J. Eckleburg',d:'A faded billboard that watches everything. George Wilson comes to see it as the eyes of God.'},
+ {e:'📚',n:'Owl Eyes’ “Real” Books',d:'The books are real, but their pages are uncut: Gatsby’s world looks authentic, yet it’s a stage set.'},
+ {e:'🚗',n:'Gatsby’s Car',d:'Huge, cream-colored, impossible to miss: wealth meant to be noticed. Watch for it again.'},
+ {e:'⏰',n:'Nick’s Clock',d:'Gatsby nearly knocks it over. He wants to stop time and go back to 1917.'},
+ {e:'⛵',n:'Dan Cody’s Yacht',d:'Where James Gatz rowed out and invented “Jay Gatsby,” the birth of his dream.'},
+ {e:'💰',n:'Daisy’s Voice',d:'“Full of money”: the charm Gatsby loves is tangled up with the wealth he chases.'},
+ {e:'🏊',n:'The Swimming Pool',d:'Gatsby finally uses it at summer’s end, waiting for a call from Daisy that never comes.'},
+ {e:'🚣',n:'Boats Against the Current',d:'The final image: we push toward the future but keep getting pulled back into the past.'}
+];
+const CH=[
+ {roman:'I',place:'West Egg · Summer 1922',title:'The Green Light',scene:'bay',
+  narr:["You are <em>Nick Carraway</em>, a young bond salesman from the Midwest. You’ve just rented a small house in West Egg, Long Island, right next to a mansion so enormous it looks like a hotel. It belongs to a mysterious man named <em>Gatsby</em>.",
+        "Across the bay, in fashionable East Egg, live your cousin <em>Daisy</em> and her husband <em>Tom Buchanan</em>, a rich, arrogant former Yale football star. After an awkward dinner at their mansion, you come home late. Someone is standing alone on the lawn next door…"],
+  quote:{t:"Whenever you feel like criticizing any one, just remember that all the people in this world haven’t had the advantages that you’ve had.",c:"Nick’s father · Chapter 1"},
+  act:'Find what Gatsby is reaching for',
+  hist:{h:'The Real Eggs',t:'West Egg and East Egg are based on two real peninsulas on Long Island’s North Shore: Great Neck and Manhasset Neck. Fitzgerald and his wife Zelda lived in Great Neck from 1922 to 1924, right when the novel takes place, and went to plenty of wild parties there.'}},
+ {roman:'II',place:'Queens',title:'The Valley of Ashes',scene:'valley',
+  narr:["Tom takes you into New York by train. Halfway there, he grabs your arm and pulls you off at a bleak stop: a gray wasteland where the city dumps its ashes.",
+        "Tom wants you to meet his girlfriend, <em>Myrtle Wilson</em>. She’s married to <em>George Wilson</em>, a worn-out mechanic who runs a garage here. Tom doesn’t even try to hide the affair."],
+  quote:{t:"This is a valley of ashes—a fantastic farm where ashes grow like wheat into ridges and hills and grotesque gardens.",c:"Nick · Chapter 2"},
+  act:'Explore the Valley of Ashes',
+  hist:{h:'A Real Wasteland',t:'The Valley of Ashes was real: the Corona Ash Dumps in Queens, where Brooklyn’s coal ash and garbage were piled into gray mountains. In the late 1930s it was cleaned up for the 1939 World’s Fair. Today it’s Flushing Meadows–Corona Park, home of the US Open tennis tournament.'}},
+ {roman:'III',place:'Gatsby’s Mansion',title:'The Party',scene:'party',
+  narr:["All summer, music drifts over from Gatsby’s mansion. On weekends his car shuttles guests from the city, and caterers turn his gardens into a carnival. Hundreds come. Almost nobody was actually invited.",
+        "You were, though: a chauffeur in a robin’s-egg-blue uniform delivered a formal invitation. Now you’re at the party, and you can’t find the host anywhere. Everyone has a theory about who he really is."],
+  quote:{t:"In his blue gardens men and girls came and went like moths among the whisperings and the champagne and the stars.",c:"Nick · Chapter 3"},
+  act:'Mingle and collect the rumors',
+  hist:{h:'Prohibition',t:'From 1920 to 1933, the 18th Amendment made it illegal to make, sell or transport alcohol in the United States. Parties like Gatsby’s broke the law in plain sight, secret bars called speakeasies popped up everywhere, and bootleggers who smuggled liquor got very rich, very fast.'}},
+ {roman:'IV',place:'The Road to New York',title:'Truth or Tale?',scene:'bridge',
+  narr:["One morning Gatsby pulls up in his gorgeous cream-colored car and drives you into the city. On the way, he decides to tell you “God’s truth” about his life.",
+        "Some of it sounds like it came out of an adventure novel. You’re not sure whether to laugh or believe him. Decide for yourself."],
+  quote:{t:"I am the son of some wealthy people in the Middle West—all dead now. I was brought up in America but educated at Oxford, because all my ancestors have been educated there for many years. It is a family tradition.",c:"Gatsby · Chapter 4"},
+  act:'Sort Gatsby’s claims: truth or tale?',
+  hist:{h:'The 1919 World Series',t:'Gatsby introduces Nick to Meyer Wolfshiem, “the man who fixed the World’s Series.” That really happened: in the 1919 “Black Sox” scandal, eight Chicago White Sox players were accused of taking gamblers’ money to lose the Series on purpose and were banned from baseball for life. Wolfshiem is based on the real gangster Arnold Rothstein.'}},
+ {roman:'V',place:'Nick’s House',title:'Tea for Two',scene:'parlor',
+  narr:["Jordan Baker has told you the secret: Gatsby and Daisy fell in love in Louisville in 1917, before he went to war. While he was overseas, she married Tom. Gatsby bought his mansion just to be across the bay from her.",
+        "Now he asks you a huge favor: invite Daisy to tea, and let him “happen” to drop by. On the day, it pours rain. Gatsby has your lawn mowed and fills your house with flowers. When Daisy arrives, he leans back on your mantelpiece, stiff and pale, and his head presses against your clock…"],
+  quote:{t:"Luckily the clock took this moment to tilt dangerously at the pressure of his head, whereupon he turned and caught it with trembling fingers, and set it back in place.",c:"Nick · Chapter 5"},
+  act:'Catch the clock!',
+  hist:{h:'The New Woman',t:'The 19th Amendment gave American women the right to vote in 1920. “Flappers” cut their hair short, wore shorter dresses, drove cars and played sports. Jordan Baker, a champion golfer, is one of them. But Daisy shows the limits: she still depends on a rich husband for everything.'}},
+ {roman:'VI',place:'West Egg',title:'Who Is Jay Gatsby?',scene:'yacht',
+  narr:["A reporter shows up at Gatsby’s door asking questions, and Gatsby’s real story starts to come out. He wasn’t born Jay Gatsby at all.",
+        "He was <em>James Gatz</em>, a farm kid from North Dakota who invented a brand-new self. Can you put the pieces of his life in order?"],
+  quote:{t:"The truth was that Jay Gatsby of West Egg, Long Island, sprang from his Platonic conception of himself.",c:"Nick · Chapter 6"},
+  act:'Rebuild Gatsby’s timeline',
+  hist:{h:'The Self-Made Man',t:'Americans loved rags-to-riches stories, like Horatio Alger’s popular novels about poor boys who rise through hard work and luck. Gatsby is the dark side of that dream: he does rise, but through lies and crime, and all for a past he can’t get back.'}},
+ {roman:'VII',place:'The Plaza Hotel',title:'The Hottest Day',scene:'plaza',
+  narr:["It’s the hottest day of the summer. At lunch at the Buchanans’, Daisy looks at Gatsby a little too long, and Tom finally realizes what’s going on. Everyone piles into cars and drives into New York, where they rent a suite at the Plaza Hotel to escape the heat.",
+        "Instead, tempers explode. Tom and Gatsby fight over Daisy, and she’s caught in the middle. Can you tell who said what?"],
+  quote:{t:"Her voice is full of money.",c:"Chapter 7"},
+  act:'Who said it?',
+  hist:{h:'The Plaza',t:'The Plaza Hotel opened in 1907 on Fifth Avenue at the corner of Central Park and is still open today. Scott and Zelda Fitzgerald stayed there often. Legend says Zelda once jumped into the fountain out front.'}},
+ {roman:'VIII',place:'The Valley of Ashes',title:'The Death Car',scene:'deathcar',
+  narr:["On the drive home, a car races through the Valley of Ashes. Myrtle Wilson runs into the road, maybe thinking it’s Tom, and is hit and killed. The car never stops.",
+        "The newspapers call it the “death car.” Turn over the clues and figure out what really happened."],
+  quote:{t:"They’re a rotten crowd. You’re worth the whole damn bunch put together.",c:"Nick, to Gatsby · Chapter 8"},
+  act:'Investigate the clues',
+  hist:{h:'The Age of the Automobile',t:'Car ownership in America roughly tripled during the 1920s. Roads, traffic laws and driver’s licenses couldn’t keep up, and traffic deaths climbed fast. In the novel, cars show off wealth, but they also cause careless, deadly damage.'}},
+ {roman:'IX',place:'West Egg · Autumn',title:'Careless People',scene:'funeral',
+  narr:["Gatsby is dead. George Wilson, believing Gatsby was driving the car that killed Myrtle, shot him in his swimming pool and then shot himself. Gatsby’s mansion fills with police and reporters.",
+        "You try to gather people for the funeral of the man whose parties hundreds of guests attended. Who do you think came?"],
+  quote:{t:"They were careless people, Tom and Daisy—they smashed up things and creatures and then retreated back into their money or their vast carelessness…",c:"Nick · Chapter 9"},
+  act:'Who came to the funeral?',
+  hist:{h:'A Slow Start for a Classic',t:'The Great Gatsby came out in April 1925 and sold disappointingly. Fitzgerald died in 1940 believing it was a failure. During World War II, about 150,000 free copies were printed for American soldiers, and the book finally found its readers. Now it’s one of the most famous American novels ever written.'}}
+];
+
+/* ================= STATE ================= */
+let ci=0, insight=0, maxIns=0, got=new Array(9).fill(false), sound=true, actx=null;
+const app=document.getElementById('app');
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
+const scrollUp=()=>window.scrollTo({top:0,behavior:'smooth'});
+function getCtx(){ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function tone(freqs,type='sine',vol=.16){
+  if(!sound) return;
+  try{getCtx();
+    freqs.forEach((f,k)=>{const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;const t=actx.currentTime+k*.11;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.55);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+.6);});
+  }catch(e){}
+}
+const ding=()=>tone([523,659,784,1047],'triangle');
+const buzz=()=>tone([220,185],'sawtooth',.06);
+$('#mute').onclick=()=>{sound=!sound;$('#mute').textContent=sound?'SFX ON':'SFX OFF';$('#mute').classList.toggle('off',!sound);};
+
+/* ================= MUSIC: original 1920s-style jazz, synthesized live ================= */
+const Music=(()=>{
+  let ctx=null, master=null, verb=null, noise=null, timer=null, on=true, playing=false, trk=null, step=0, nextT=0, loop=0;
+  const mtof=m=>440*Math.pow(2,(m-69)/12);
+  const CH_={F6:{v:[53,57,60,62],b:[41,48]},D7:{v:[54,57,60,64],b:[38,45]},Gm7:{v:[53,58,62,65],b:[43,50]},C7:{v:[52,55,58,62],b:[36,43]},Am7:{v:[55,60,64,67],b:[45,52]},
+             Dm:{v:[53,57,62,65],b:[38,45]},Gm:{v:[55,58,62,67],b:[43,50]},Bbmaj7:{v:[57,62,65,69],b:[46,53]},A7:{v:[55,61,64,67],b:[45,52]},Bb7:{v:[56,62,65,68],b:[46,53]}};
+  const TRACKS={
+    party:{name:'“West Egg Stomp”',bpm:168,swing:.64,style:'stride',
+      bars:['F6','D7','Gm7','C7','Am7','D7','Gm7','C7'],
+      mel:[[[0,72,1],[1,74,1],[2,77,2],[4,74,1],[5,72,1],[6,69,2]],[[0,74,1],[1,72,1],[2,69,1],[3,66,3],[6,69,2]],[[0,70,1],[1,72,1],[2,74,2],[4,77,2],[6,74,2]],[[0,76,3],[3,72,1],[4,70,2],[6,67,2]],
+           [[0,69,1],[1,72,1],[2,76,2],[4,79,2],[6,76,2]],[[0,78,2],[2,74,1],[3,72,1],[4,69,4]],[[0,70,1],[1,74,1],[2,77,2],[4,76,1],[5,74,1],[6,72,2]],[[0,72,1],[1,70,1],[2,67,1],[3,64,1],[4,65,4]]]},
+    night:{name:'“Across the Bay”',bpm:96,swing:.62,style:'ballad',
+      bars:['F6','Am7','Gm7','C7','F6','D7','Gm7','C7'],
+      mel:[[[0,72,3],[3,69,1],[4,77,4]],[[0,76,2],[2,72,2],[4,69,4]],[[0,70,2],[2,74,2],[4,77,3],[7,76,1]],[[0,74,4],[4,72,4]],
+           [[0,69,2],[2,72,2],[4,74,2],[6,77,2]],[[0,78,4],[4,74,4]],[[0,74,2],[2,70,2],[4,67,4]],[[0,64,2],[2,67,2],[4,70,2],[6,69,2]]]},
+    blue:{name:'“Boats Against the Current”',bpm:72,swing:.6,style:'ballad',
+      bars:['Dm','Dm','Gm','Gm','Dm','Bbmaj7','A7','A7'],
+      mel:[[[0,69,4],[4,74,4]],[[0,72,2],[2,69,2],[4,65,4]],[[0,67,4],[4,70,4]],[[0,74,3],[3,72,1],[4,70,4]],
+           [[0,69,4],[4,65,2],[6,62,2]],[[0,65,4],[4,69,4]],[[0,67,2],[2,64,2],[4,61,4]],[[0,62,8]]]}
+  };
+  function setup(){
+    if(ctx) return; ctx=getCtx();
+    master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+    const len=ctx.sampleRate*1.6, ir=ctx.createBuffer(2,len,ctx.sampleRate);
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);}
+    verb=ctx.createConvolver(); verb.buffer=ir; const vg=ctx.createGain(); vg.gain.value=.22; verb.connect(vg).connect(master);
+    noise=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate); const nd=noise.getChannelData(0); for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  }
+  function out(node,wet=true){ node.connect(master); if(wet) node.connect(verb); }
+  function piano(t,m,dur,vel){
+    const g=ctx.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vel,t+.006); g.gain.exponentialRampToValueAtTime(.0001,t+dur+.5);
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2600; g.connect(lp); out(lp);
+    [['triangle',1,1],['sine',2,.35],['sine',1.003,.5]].forEach(([ty,mul,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=ty;o.frequency.value=mtof(m)*mul;og.gain.value=a;o.connect(og).connect(g);o.start(t);o.stop(t+dur+.6);});
+  }
+  function bass(t,m,dur,vel){
+    const o=ctx.createOscillator(),g=ctx.createGain(),lp=ctx.createBiquadFilter(); o.type='triangle'; o.frequency.value=mtof(m-12); lp.type='lowpass'; lp.frequency.value=700;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vel,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(lp).connect(g); out(g,false); o.start(t); o.stop(t+dur+.05);
+  }
+  function clar(t,m,dur,vel){
+    const o=ctx.createOscillator(),g=ctx.createGain(),lp=ctx.createBiquadFilter(),lfo=ctx.createOscillator(),lg=ctx.createGain();
+    o.type='square'; o.frequency.value=mtof(m); lp.type='lowpass'; lp.frequency.value=1500; lp.Q.value=1.5;
+    lfo.frequency.value=5.2; lg.gain.value=mtof(m)*.006; lfo.connect(lg).connect(o.frequency);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vel,t+.04); g.gain.setValueAtTime(vel*.85,t+Math.max(.05,dur-.06)); g.gain.exponentialRampToValueAtTime(.0001,t+dur+.12);
+    o.connect(lp).connect(g); out(g); o.start(t); lfo.start(t); o.stop(t+dur+.15); lfo.stop(t+dur+.15);
+  }
+  function hat(t,vel,dec,hp=7000){
+    const s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain(); s.buffer=noise; f.type='highpass'; f.frequency.value=hp;
+    g.gain.setValueAtTime(vel,t); g.gain.exponentialRampToValueAtTime(.0001,t+dec); s.connect(f).connect(g); out(g,false); s.start(t); s.stop(t+dec+.02);
+  }
+  function stepLen(s){ const beat=60/trk.bpm; return (s%2===0)? beat*trk.swing : beat*(1-trk.swing); }
+  function sched(t,s){
+    const bar=Math.floor(s/8)%trk.bars.length, pos=s%8, ch=CH_[trk.bars[bar]], beat=60/trk.bpm;
+    if(s>0 && s%(8*trk.bars.length)===0) loop++;
+    if(trk.style==='stride'){
+      if(pos===0) bass(t,ch.b[0],beat*.9,.42);
+      if(pos===4) bass(t,ch.b[1],beat*.9,.36);
+      if(pos===2||pos===6) ch.v.forEach(m=>piano(t,m,beat*.35,.07));
+      if(pos===7 && (bar===3||bar===7)) ch.v.forEach(m=>piano(t,m+(bar===7?0:0),beat*.25,.05));
+      if([0,2,3,4,6,7].includes(pos)) hat(t,pos%2?.05:.08,.12,8000);
+      if(pos===2||pos===6) hat(t,.06,.05,4000);
+      const lead = loop%3!==2;
+      trk.mel[bar].forEach(([p,m,d])=>{ if(p===pos){ if(lead) clar(t,m,d*beat/2*1.05,.06); else piano(t,m+12,d*beat/2,.06); } });
+    } else {
+      if(pos===0){ bass(t,ch.b[0],beat*2.2,.4); ch.v.forEach((m,k)=>piano(t+k*.035,m,beat*1.6,.06)); }
+      if(pos===4){ bass(t,ch.b[1],beat*1.8,.3); ch.v.forEach(m=>piano(t,m,beat*.9,.035)); }
+      if(pos%2===0) hat(t,.025,.25,3000);
+      trk.mel[bar].forEach(([p,m,d])=>{ if(p===pos){ if(loop%2===0) clar(t,m,d*beat/2,.05); else piano(t,m+12,d*beat/2,.055); } });
+    }
+  }
+  function tick(){ while(nextT<ctx.currentTime+.15){ sched(nextT,step); nextT+=stepLen(step); step++; } }
+  function show(){ const n=$('#nowp'); $('#nowt').textContent='Now playing: '+trk.name; n.classList.add('on'); clearTimeout(show.t); show.t=setTimeout(()=>n.classList.remove('on'),4000); }
+  function fade(to,sec=.8){ const t=ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value,t); master.gain.linearRampToValueAtTime(to,t+sec); }
+  function start(name){
+    trk=TRACKS[name]||trk||TRACKS.party; if(!on) return; setup();
+    if(!playing){ playing=true; step=0; loop=0; nextT=ctx.currentTime+.1; timer=setInterval(tick,25); fade(.55,1.2); show(); }
+  }
+  function play(name){
+    const want=TRACKS[name];
+    if(!on){ trk=want; return; }
+    if(!playing){ start(name); return; }
+    if(want===trk) return;
+    fade(0,.6);
+    setTimeout(()=>{ trk=want; step=0; loop=0; nextT=ctx.currentTime+.05; fade(.55,1); show(); },650);
+  }
+  function stop(){ if(!playing) return; fade(0,.5); setTimeout(()=>{clearInterval(timer);playing=false;},550); }
+  function toggle(){ on=!on; if(on){ start(); } else stop(); return on; }
+  document.addEventListener('visibilitychange',()=>{ if(!ctx) return; if(document.hidden) ctx.suspend(); else ctx.resume(); });
+  return {play,toggle,isOn:()=>on};
+})();
+$('#musBtn').onclick=()=>{ const on=Music.toggle(); $('#musBtn').textContent=on?'♫ MUSIC ON':'♫ MUSIC OFF'; $('#musBtn').classList.toggle('off',!on); if(on) Music.play(moodFor()); };
+function moodFor(){ return ci>=7 ? 'blue' : ([0,1,4,5].includes(ci) ? 'night' : 'party'); }
+$('#fsBtn').onclick=()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); } else document.exitFullscreen(); };
+document.addEventListener('fullscreenchange',()=>{ $('#fsBtn').textContent=document.fullscreenElement?'⤡ EXIT FULL SCREEN':'⤢ FULL SCREEN'; });
+function addIns(n=1){insight+=n;hud();const b=$('#ins');b.classList.add('bump');setTimeout(()=>b.classList.remove('bump'),220);}
+function hud(){
+  $('#chaps').innerHTML=CH.map((c,k)=>`<span class="${k<ci?'done':''} ${k===ci?'here':''}"><i>${c.roman}</i></span>`).join('');
+  $('#ins').textContent=insight; $('#symN').textContent=got.filter(Boolean).length;
+}
+$('#symBtn').onclick=()=>{
+  $('#cab').innerHTML=SYMBOLS.map((s,k)=>got[k]?`<div class="tile"><div class="e">${s.e}</div><b>${s.n}</b><small>${s.d}</small></div>`:`<div class="tile locked"><div class="e">❔</div><b>Chapter ${CH[k].roman}</b><small>Not yet unlocked</small></div>`).join('');
+  $('#modal').classList.add('on');
+};
+$('#closeM').onclick=()=>$('#modal').classList.remove('on');
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('on');};
+
+/* multiple-choice helper */
+function mcq(el,q,opts,ans,explain,onDone,pts=1){
+  maxIns+=pts;
+  const o=shuffle(opts.map((t,k)=>({t,ok:k===ans})));
+  el.innerHTML=`<div class="task">${q}</div><div class="choices">${o.map((x,k)=>`<button class="choice" data-ok="${x.ok?1:0}"><span class="k"><i>${'ABCD'[k]}</i></span><span>${x.t}</span></button>`).join('')}</div><div class="fbx"></div>`;
+  el.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{
+    const ok=b.dataset.ok==='1';
+    el.querySelectorAll('.choice').forEach(x=>{x.disabled=true;if(x.dataset.ok==='1')x.classList.add('good');});
+    if(!ok)b.classList.add('bad');
+    if(ok){addIns(pts);ding();}else buzz();
+    el.querySelector('.fbx').innerHTML=`<div class="fb"><div class="v ${ok?'good-t':'bad-t'}">${ok?'✦ Sharp eye. +'+pts+' insight':'Not quite.'}</div>${explain}<div class="row"><span></span><button class="btn nx">Continue</button></div></div>`;
+    el.querySelector('.nx').onclick=onDone;
+  });
+}
+function quoteBox(t,c){return `<div class="quote"><div class="qt">${t}</div><cite>${c}</cite></div>`;}
+
+/* ================= FLOW ================= */
+function title(){
+  $('#hud').classList.remove('on');
+  app.innerHTML=`<article class="card title">${SC.title()}
+    <div class="eyebrow">An interactive journey through F. Scott Fitzgerald’s novel</div>
+    <p>It’s the summer of 1922. You are Nick Carraway, the new neighbor of the most mysterious millionaire on Long Island. Explore all nine chapters, play a different challenge in each, uncover the novel’s symbols, and see the real 1920s history behind the story.</p>
+    <p class="small">9 chapters · about 20 minutes · contains spoilers for the whole book</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Enter West Egg</button></div></article>`;
+  $('#go').onclick=()=>{ci=0;insight=0;maxIns=0;got=new Array(9).fill(false);tone([392,494,587]);Music.play('night');intro();};
+}
+function intro(){
+  Music.play(moodFor());
+  $('#hud').classList.add('on');hud();
+  const c=CH[ci];
+  app.innerHTML=`<article class="card">${SC[c.scene]()}
+    <div class="eyebrow">Chapter ${c.roman} · ${c.place}</div><h2>${c.title}</h2>
+    ${c.narr.map(p=>`<p>${p}</p>`).join('')}
+    ${quoteBox(c.quote.t,c.quote.c)}
+    <div class="row"><span class="small">Challenge: ${c.act}</span><button class="btn" id="play">Play ▸</button></div></article>`;
+  scrollUp();
+  $('#play').onclick=()=>{tone([440,554]);ACTS[ci]();};
+}
+function actCard(inner){
+  const c=CH[ci];
+  app.innerHTML=`<article class="card"><div class="eyebrow">Chapter ${c.roman} · Challenge</div><h2>${c.act}</h2>${inner}</article>`;
+  scrollUp();
+}
+function wrapUp(extra=''){
+  const c=CH[ci], s=SYMBOLS[ci];
+  const fresh=!got[ci]; got[ci]=true; hud(); if(fresh) tone([392,523,659,784],'triangle');
+  app.innerHTML=`<article class="card"><div class="eyebrow">Chapter ${c.roman} · Complete</div><h2>${c.title}</h2>
+    ${extra}
+    <div class="symbol"><div class="big"><span>${s.e}</span></div><div><h3>Symbol unlocked</h3><b style="font-family:var(--disp);font-size:22px;font-weight:400">${s.n}</b><p style="margin:4px 0 0">${s.d}</p></div></div>
+    <div class="history"><h3>The Real 1920s: ${c.hist.h}</h3><p style="margin:0">${c.hist.t}</p></div>
+    <div class="row"><button class="btn ghost" id="symOpen">View Symbols</button><button class="btn" id="next">${ci<8?'Chapter '+CH[ci+1].roman+' ▸':'The Final Page ▸'}</button></div></article>`;
+  scrollUp();
+  $('#symOpen').onclick=()=>$('#symBtn').click();
+  $('#next').onclick=()=>{ if(ci<8){ci++;intro();} else ending(); };
+}
+
+/* hotspot helper */
+function hotspots(svgKey,spots,onAll,opts={}){
+  let svg=SC[svgKey](true);
+  const marks=spots.map((s,k)=>`<g class="spot" data-k="${k}" ${s.hidden?'style="display:none"':''}><circle class="ring" cx="${s.x}" cy="${s.y}" r="18" fill="none" stroke="#ffe08a" stroke-width="3"/><circle class="core" cx="${s.x}" cy="${s.y}" r="9" fill="#ffd76a" stroke="#111" stroke-width="2"/><circle cx="${s.x}" cy="${s.y}" r="30" fill="transparent"/></g>`).join('');
+  svg=svg.replace(/<\/svg>$/,marks+'</svg>');
+  const need=spots.filter(s=>!s.hidden).length;
+  actCard(`<p class="task">${opts.task}</p>${svg}<div class="row" style="margin-top:0"><span class="counter" id="cnt">Found 0 / ${need}</span><span class="small">Tap the glowing markers</span></div><div class="info" id="info"><p class="small" style="margin:0">${opts.empty}</p></div><div id="after"></div>`);
+  const found=new Set();
+  $$('.spot').forEach(g=>g.addEventListener('click',()=>{
+    const k=+g.dataset.k, s=spots[k];
+    $('#info').innerHTML=`<h3>${s.label}</h3>${s.text}`;
+    if(!found.has(k)){found.add(k);g.classList.add('found');tone([660,880],'triangle',.1);
+      const vis=spots.filter((x,j)=>!x.hidden||found.has(j)).length;
+      $('#cnt').textContent=`Found ${found.size} / ${Math.max(need,vis)}`;
+      if(s.final){ setTimeout(()=>onAll($('#after')),400); }
+      else if(found.size===need){
+        const h=spots.findIndex(x=>x.hidden);
+        if(h>=0){ const hg=document.querySelector(`.spot[data-k="${h}"]`); hg.style.display=''; $('#cnt').textContent=`Found ${found.size} / ${need+1}`;
+          $('#info').innerHTML+=`<p class="good-t" style="margin:8px 0 0"><b>✦ ${opts.unlock}</b></p>`; }
+        else setTimeout(()=>onAll($('#after')),400);
+      }
+    }
+  }));
+}
+
+/* ================= CHALLENGES ================= */
+const ACTS=[
+/* I — find the green light */
+()=>{
+  actCard(`<p class="task">Gatsby is stretching his arms toward something across the dark water. Click on what he’s reaching for.</p>${SC.bay(true)}<div id="msg" class="info"><p class="small" style="margin:0">Look carefully across the bay…</p></div><div id="after"></div>`);
+  let miss=0, done=false; maxIns+=1;
+  const svg=$('#bay');
+  svg.style.cursor='crosshair';
+  svg.addEventListener('click',e=>{
+    if(done) return;
+    const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+    const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const d=Math.hypot(p.x-612,p.y-199);
+    if(d<34){
+      done=true; ding(); if(miss<3) addIns(1);
+      $('#msg').innerHTML=`<h3 class="good-t">You found it${miss<3?' · +1 insight':''}</h3>`+quoteBox("…he stretched out his arms toward the dark water in a curious way, and, far as I was from him, I could have sworn he was trembling. Involuntarily I glanced seaward—and distinguished nothing except a single green light, minute and far away, that might have been the end of a dock.","Nick · Chapter 1");
+      mcq($('#after'),"Later in the book, you learn whose dock that green light is on. Whose is it?",["Daisy and Tom Buchanan’s","Jordan Baker’s","Meyer Wolfshiem’s","A lighthouse keeper’s"],0,
+        `<p style="margin:6px 0 0">In Chapter 5, Gatsby tells Daisy that if it weren’t for the mist, they could see her home across the bay, and that she always has a green light burning all night at the end of her dock. All along, he has been reaching for Daisy.</p>`,()=>wrapUp());
+    } else {
+      miss++; buzz();
+      const lines=["Nothing but dark water…","Just the moon on the bay. Keep looking.","Hint: look along the far shore, near the white mansion of East Egg."];
+      $('#msg').innerHTML=`<p style="margin:0">${lines[Math.min(miss-1,2)]}</p>`;
+      if(miss>=3) svg.classList.add('hint');
+    }
+  });
+},
+/* II — valley hotspots */
+()=>{
+  hotspots('valley',[
+   {x:650,y:80,label:'The Billboard',text:quoteBox("The eyes of Doctor T. J. Eckleburg are blue and gigantic—their retinas are one yard high. They look out of no face, but, instead, from a pair of enormous yellow spectacles…","Nick · Chapter 2")+`<p style="margin:0">An eye doctor put this ad up long ago and forgot it. The paint is fading, but the eyes keep staring over the wasteland.</p>`},
+   {x:330,y:205,label:'The Ash Heaps',text:`<p style="margin:0">Gray ridges of ash stretch in every direction. Ash-gray men move slowly through the dust with their shovels. Everything here, including the people, is the color of ash: the opposite of the golden world of the Eggs.</p>`},
+   {x:135,y:200,label:'Wilson’s Garage',text:`<p style="margin:0">“Repairs. George B. Wilson. Cars bought and sold.” Wilson is pale, tired, and broke. Tom keeps promising to sell him a car to fix up, and Wilson has no idea that Tom is seeing his wife.</p>`},
+   {x:176,y:250,label:'Myrtle Wilson',text:`<p style="margin:0">Myrtle desperately wants out of this gray life, and Tom seems like her ticket to money and excitement. That afternoon, at a wild party in a New York apartment, she taunts Tom by shouting Daisy’s name. Tom breaks her nose with one blow of his open hand.</p>`}
+  ],(el)=>mcq(el,"What does the Valley of Ashes most likely represent?",["The people who get used up and left behind by the rich","The beauty of the American countryside","Gatsby’s hidden fortune","Nick’s peaceful childhood"],0,
+     `<p style="margin:6px 0 0">The Valley sits right between the glittering Eggs and the city. The wealthy race through it on the way to their fun, while people like the Wilsons are stuck there, covered in the dust of everyone else’s good times.</p>`,()=>wrapUp()),
+   {task:'Explore the valley. Find all four places hidden in the scene.',empty:'Tap a glowing marker to investigate.'});
+},
+/* III — party */
+()=>{
+  hotspots('party',[
+   {x:160,y:228,label:'A girl in yellow',text:`<p style="margin:0">She leans in and whispers: <em>“Somebody told me they thought he killed a man once.”</em></p>`},
+   {x:300,y:240,label:'A man with a drink',text:`<p style="margin:0">He’s certain he knows better: Gatsby was <em>a German spy during the war.</em> Others say he’s a relative of a German emperor, or a bootlegger.</p>`},
+   {x:500,y:150,label:'The Library',text:quoteBox("Absolutely real—have pages and everything. I thought they’d be a nice durable cardboard.","“Owl Eyes” · Chapter 3")+`<p style="margin:0">A stout man with owl-eyed spectacles is amazed that Gatsby’s books are real. But the pages have never been cut open. Nobody has read them.</p>`},
+   {x:655,y:232,label:'Jordan Baker',text:`<p style="margin:0">The famous golfer, Daisy’s friend, rolls her eyes: Gatsby told her once that he was an Oxford man. <em>“However, I don’t believe it.”</em></p>`},
+   {x:430,y:150,label:'A smiling man on the terrace',hidden:true,final:true,text:`<p>You chat with a man about your age about the war. He thinks he remembers you from your army division. Then you mention you haven’t met the host yet.</p>`+quoteBox("He smiled understandingly—much more than understandingly. It was one of those rare smiles with a quality of eternal reassurance in it, that you may come across four or five times in life.","Nick · Chapter 3")+`<p style="margin:0"><em>“I’m Gatsby,”</em> he says suddenly. <em>“I’m afraid I’m not a very good host, old sport.”</em></p>`}
+  ],(el)=>mcq(el,"Why does Gatsby throw these enormous parties, week after week?",["He hopes Daisy will wander in one night","He loves to dance","He’s trying to sell bonds","He wants to find a wife, and anyone will do"],0,
+     `<p style="margin:6px 0 0">In Chapter 4, Jordan reveals that Gatsby half expected Daisy to wander into one of his parties some night. The whole spectacle was for one person.</p>`,()=>wrapUp()),
+   {task:'You can’t find the host. Mingle with the guests and collect every rumor about him.',empty:'Tap a glowing marker to eavesdrop.',unlock:'Someone new has appeared on the terrace…'});
+},
+/* IV — truth or tale */
+()=>{
+  const claims=[
+   {c:"“My family were wealthy people from the Middle West.”",a:false,x:"His parents were poor farm people in North Dakota (Chapter 6). And when Nick asks which part of the Middle West, Gatsby answers: “San Francisco.” That’s not the Middle West at all."},
+   {c:"“I was educated at Oxford.”",a:true,x:"Sort of! In Chapter 7 he explains it was only five months, an opportunity given to some American officers after the war. He even carries a photo of himself at Oxford."},
+   {c:"“I was decorated for bravery in the war, even by the country of Montenegro.”",a:true,x:"He pulls the medal from his pocket, inscribed “Orderi di Danilo,” and Nick is amazed. This one checks out."},
+   {c:"“I inherited my fortune from my family.”",a:false,x:"Dan Cody left him $25,000, but Gatsby never got it. His money really comes from bootlegging and shady deals with Meyer Wolfshiem, as Tom points out in Chapter 7."},
+   {c:"“I lived like a young rajah in all the capitals of Europe, collecting jewels, hunting big game, painting a little.”",a:false,x:"Nick can barely keep from laughing. The phrases sound “threadbare,” straight out of a cheap adventure story."},
+   {c:"“Meyer Wolfshiem is the man who fixed the 1919 World Series.”",a:true,x:"True in the novel, and inspired by a real scandal (see the history card after this challenge)."}
+  ];
+  maxIns+=claims.length;
+  let k=0, right=0;
+  actCard(`${SC.bridge()}<p class="task">Gatsby is telling you his life story. For each claim, decide: is it the truth, or a tale?</p><div id="tt"></div>`);
+  const show=()=>{
+    const c=claims[k];
+    $('#tt').innerHTML=`<div class="claim"><div class="n">CLAIM ${k+1} OF ${claims.length}</div><div class="c">${c.c}</div></div>
+     <div class="tt"><button class="btn" data-a="1">✓ Truth</button><button class="btn ghost" data-a="0">✗ A Tale</button></div><div id="tfb"></div>`;
+    $$('#tt .tt .btn').forEach(b=>b.onclick=()=>{
+      const ok=(b.dataset.a==='1')===c.a;
+      $$('#tt .tt .btn').forEach(x=>x.disabled=true);
+      if(ok){right++;addIns(1);ding();}else buzz();
+      $('#tfb').innerHTML=`<div class="fb"><div class="v ${ok?'good-t':'bad-t'}">${ok?'✦ Right!':'Not quite.'} It’s ${c.a?'TRUE':'A TALE'}.</div><p style="margin:0">${c.x}</p><div class="row"><span class="counter">${right} / ${k+1} correct</span><button class="btn" id="tn">${k<claims.length-1?'Next claim':'Finish'}</button></div></div>`;
+      $('#tn').onclick=()=>{k++; if(k<claims.length) show(); else wrapUp(`<p>You sorted <b>${right} of ${claims.length}</b> of Gatsby’s claims correctly. As Nick says, he’s a mix of the real and the invented, and that’s exactly what makes him fascinating.</p>`);};
+    });
+  };
+  show();
+},
+/* V — catch the clock */
+()=>{
+  maxIns+=1;
+  actCard(`<p class="task">Gatsby leans back nervously, and your clock starts to tip! Press <b>CATCH</b> (or the spacebar) when the needle is in the green zone.</p>${SC.parlor(true)}
+   <div class="gauge"><i id="needle"></i><span style="left:4%">STEADY</span><span style="left:30%;color:#3be08f">CATCH IT!</span><span style="left:68%;color:#d0614f">TOO LATE</span></div>
+   <div class="row" style="margin-top:6px"><span class="counter" id="tries">Attempt 1 of 2</span><button class="btn" id="catch" disabled>Catch!</button></div><div id="cmsg"></div><div id="after"></div>`);
+  let attempt=1, running=false, t0=0, raf=0, caught=false;
+  const clock=$('#clock'), needle=$('#needle');
+  const setA=a=>{clock.setAttribute('transform',`rotate(${P(a)} 298 150)`);needle.style.left=Math.min(98,a/90*100)+'%';};
+  const finish=(ok,why)=>{
+    running=false; cancelAnimationFrame(raf); $('#catch').disabled=true;
+    if(ok){caught=true;addIns(1);ding();$('#cmsg').innerHTML=`<div class="fb"><div class="v good-t">✦ Caught it! +1 insight</div><p style="margin:0">Gatsby spins around and catches it with trembling fingers. “I’m sorry about the clock,” he says. The past almost came crashing down, and it was only a clock.</p></div>`;next();}
+    else{buzz();
+      if(why==='late'){clock.style.transition='transform .5s ease-in';clock.setAttribute('transform','translate(30 160) rotate(120 298 150)');}
+      $('#cmsg').innerHTML=`<div class="fb"><div class="v bad-t">${why==='early'?'Too early!':'Crash!'}</div><p style="margin:0">${why==='early'?'You grabbed it before it started to fall. Wait for the green zone.':'In the book, Gatsby catches it just in time. Close call.'}</p>${attempt<2?'<div class="row"><span></span><button class="btn" id="again">Try again</button></div>':''}</div>`;
+      if(attempt<2){$('#again').onclick=()=>{attempt++;$('#tries').textContent='Attempt 2 of 2';clock.style.transition='';$('#cmsg').innerHTML='';start();};} else next();
+    }
+  };
+  const loop=t=>{ const k=(t-t0)/2000, a=90*k*k; setA(a); if(a>=56){finish(false,'late');return;} raf=requestAnimationFrame(loop); };
+  const start=()=>{ setA(0); running=true; $('#catch').disabled=false; setTimeout(()=>{ if(running){t0=performance.now(); raf=requestAnimationFrame(loop);} },600); t0=performance.now()+600; };
+  const press=()=>{ if(!running) return; const k=Math.max(0,(performance.now()-t0)/2000), a=90*k*k; if(a<20) finish(false,'early'); else finish(true); };
+  $('#catch').onclick=press;
+  const key=e=>{ if(e.code==='Space' && running){e.preventDefault();press();} };
+  document.addEventListener('keydown',key);
+  function next(){
+    document.removeEventListener('keydown',key);
+    mcq($('#after'),"Later, Gatsby gives Daisy a tour of his mansion and throws pile after pile of beautiful shirts onto the table. Daisy bursts into tears. Why?",["She’s overwhelmed by his wealth, and by the life she gave up","She hates the colors","The shirts belong to Tom","She’s allergic to silk"],0,
+      quoteBox("They’re such beautiful shirts. It makes me sad because I’ve never seen such—such beautiful shirts before.","Daisy · Chapter 5")+`<p style="margin:0">The shirts stand for everything Gatsby built to win her. Later, looking at the green light with Daisy beside him, Gatsby realizes it’s just a light on a dock again: “his count of enchanted objects had diminished by one.”</p>`,()=>wrapUp());
+  }
+  setTimeout(start,700);
+},
+/* VI — timeline */
+()=>{
+  const ev=[
+   {y:'c. 1890s',t:'James Gatz grows up on a poor farm in North Dakota'},
+   {y:'1907',t:'At 17, he rows out to Dan Cody’s yacht on Lake Superior and introduces himself as “Jay Gatsby”'},
+   {y:'1917',t:'As a young army officer in Louisville, he falls in love with Daisy Fay'},
+   {y:'1918–19',t:'He fights in the war overseas; while he’s gone, Daisy marries Tom Buchanan'},
+   {y:'1919–22',t:'He gets rich through shady business with Meyer Wolfshiem'},
+   {y:'1922',t:'He buys a mansion directly across the bay from Daisy'}
+  ];
+  maxIns+=2;
+  let next=0, mist=0;
+  actCard(`${SC.yacht()}<p class="task">Click the events of Gatsby’s real life in the order they happened, earliest first.</p><ol class="tl" id="tl"></ol><div class="pool" id="pool"></div><div id="after"></div>`);
+  const order=shuffle(ev.map((e,k)=>({...e,k})));
+  $('#pool').innerHTML=order.map(e=>`<button class="ev" data-k="${e.k}">${e.t}</button>`).join('');
+  $$('#pool .ev').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k;
+    if(k===next){ tone([500+next*60],'triangle',.1); $('#tl').insertAdjacentHTML('beforeend',`<li><b>${ev[k].y}</b>${ev[k].t}</li>`); b.remove(); next++;
+      if(next===ev.length){ const pts=mist===0?2:(mist<=2?1:0); if(pts){addIns(pts);ding();}
+        $('#after').innerHTML=`<div class="fb"><div class="v ${pts?'good-t':'bad-t'}">${pts?`✦ Timeline complete. +${pts} insight`:'Timeline complete'}</div><p style="margin:0">${mist} mistake${mist===1?'':'s'}. Dan Cody, a millionaire copper miner, became the teenager’s mentor. Cody left him $25,000 in his will, but Cody’s mistress kept it all, so Gatsby got an education in the world instead of an inheritance.</p></div><div id="mc2"></div>`;
+        mcq($('#mc2'),"Gatsby wants Daisy to tell Tom she never loved him, so the two of them can go back to Louisville and start over “just as if it were five years ago.” What does Nick tell him?",["“You can’t repeat the past.”","“Go for it, old sport.”","“Daisy never loved you.”","“Forget her and find someone new.”"],0,
+          quoteBox("“Can’t repeat the past?” he cried incredulously. “Why of course you can!”","Gatsby · Chapter 6")+`<p style="margin:0">Nick warns him not to ask too much of Daisy. Gatsby’s reply sums up his whole dream, and his tragedy.</p>`,()=>wrapUp());
+      }
+    } else { mist++; buzz(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+  });
+},
+/* VII — who said it */
+()=>{
+  const Q=[
+   {q:"Her voice is full of money.",a:'Gatsby',x:"Gatsby says it to Nick about Daisy, and Nick realizes it’s exactly right: that’s the charm of her voice."},
+   {q:"Self-control! I suppose the latest thing is to sit back and let Mr. Nobody from Nowhere make love to your wife.",a:'Tom',x:"Tom sneers at Gatsby’s mysterious background, even while Tom is having an affair himself."},
+   {q:"Your wife doesn’t love you. She’s never loved you. She loves me.",a:'Gatsby',x:"Gatsby demands that Daisy erase the last five years."},
+   {q:"Oh, you want too much! I love you now—isn’t that enough? I can’t help what’s past.",a:'Daisy',x:"Daisy can’t say she never loved Tom. Gatsby’s dream starts to crack right here."},
+   {q:"Thirty—the promise of a decade of loneliness, a thinning list of single men to know, a thinning brief-case of enthusiasm, thinning hair.",a:'Nick',x:"In the middle of the chaos, Nick realizes it’s his thirtieth birthday."},
+   {q:"And I like large parties. They’re so intimate. At small parties there isn’t any privacy.",a:'Jordan',x:"A callback to Chapter 3. Jordan says it at Gatsby’s first party, and it fits Gatsby perfectly: he hides in the crowds."}
+  ];
+  const people=['Gatsby','Tom','Daisy','Nick','Jordan'];
+  maxIns+=Q.length;
+  let k=0, right=0, streak=0;
+  actCard(`${SC.plaza()}<p class="task">The suite at the Plaza is boiling. Read each line and pick who said it.</p><div id="ws"></div>`);
+  const show=()=>{
+    const q=Q[k];
+    $('#ws').innerHTML=`<div class="claim"><div class="n">QUOTE ${k+1} OF ${Q.length}</div><div class="c">“${q.q}”</div></div><div class="speakers">${people.map(p=>`<button data-p="${p}">${p}</button>`).join('')}</div><div class="streak">${streak>1?'🔥 Streak: '+streak:''}</div><div id="wfb"></div>`;
+    $$('#ws .speakers button').forEach(b=>b.onclick=()=>{
+      const ok=b.dataset.p===q.a;
+      $$('#ws .speakers button').forEach(x=>{x.disabled=true;if(x.dataset.p===q.a)x.classList.add('good');});
+      if(!ok)b.classList.add('bad');
+      if(ok){right++;streak++;addIns(1);ding();}else{streak=0;buzz();}
+      $('#wfb').innerHTML=`<div class="fb"><div class="v ${ok?'good-t':'bad-t'}">${ok?'✦ Correct!':'It was '+q.a+'.'}</div><p style="margin:0">${q.x}</p><div class="row"><span class="counter">${right} / ${k+1}${streak>1?' · 🔥 '+streak+' in a row':''}</span><button class="btn" id="wn">${k<Q.length-1?'Next quote':'Finish'}</button></div></div>`;
+      $('#wn').onclick=()=>{k++; if(k<Q.length) show(); else wrapUp(`<p>You matched <b>${right} of ${Q.length}</b> quotes. After the fight, Tom sends Daisy home with Gatsby, in Gatsby’s car. He knows he’s already won.</p>`);};
+    });
+  };
+  show();
+},
+/* VIII — clues */
+()=>{
+  const clues=[
+   {t:"Heading home from the Plaza, Gatsby and Daisy rode together in Gatsby’s big yellow car. Tom, Nick and Jordan followed in Tom’s coupé."},
+   {t:"A witness tells the police the car that hit Myrtle was <b>a big, new, yellow car</b>. It slowed down for a moment, then sped away."},
+   {t:"Earlier that day, Tom had borrowed Gatsby’s yellow car and stopped at Wilson’s garage for gas. Wilson saw Tom driving it."},
+   {t:"Late that night, Nick finds Gatsby waiting outside the Buchanans’ house. Nick asks, “Was Daisy driving?” Gatsby admits: “Yes, but of course I’ll say I was.”"}
+  ];
+  actCard(`${SC.deathcar()}<p class="task">Turn over every clue card. Then solve the case.</p><div class="grid" id="cg">${clues.map((c,k)=>`<button class="clue" data-k="${k}"><div class="in"><div class="f"><b>${k+1}</b><small>CLUE</small></div><div class="b">${c.t}</div></div></button>`).join('')}</div><div id="after"></div>`);
+  const open=new Set();
+  $$('#cg .clue').forEach(b=>b.onclick=()=>{
+    if(open.has(b.dataset.k)) return;
+    open.add(b.dataset.k); b.classList.add('open'); tone([392,330],'triangle',.08);
+    if(open.size===clues.length) setTimeout(()=>{
+      mcq($('#after'),"Who was driving the car that killed Myrtle Wilson?",["Daisy","Gatsby","Tom","Nick"],0,
+        `<p style="margin:6px 0 0">Daisy was driving, but Gatsby decides to take the blame to protect her. He waits outside her house all night in case Tom hurts her, while inside, Tom and Daisy are calmly eating cold fried chicken together.</p>`,
+        ()=>{ $('#after').innerHTML='<div id="m2"></div>';
+          mcq($('#m2'),"George Wilson becomes obsessed with finding the owner of the yellow car. Who tells him it belongs to Gatsby?",["Tom","Daisy","Nick","Jordan"],0,
+            `<p style="margin:6px 0 0">In Chapter 9, Tom admits it to Nick: he told Wilson whose car it was. Staring at the billboard, Wilson had said, “God sees everything.” His neighbor told him, “That’s an advertisement.”</p>`+quoteBox("Gatsby shouldered the mattress and started for the pool.","Nick · Chapter 8")+`<p style="margin:0">That afternoon, Gatsby finally goes for a swim, waiting for a phone call from Daisy that never comes. Wilson finds him there.</p>`,()=>wrapUp());
+        });
+    },500);
+  });
+},
+/* IX — funeral */
+()=>{
+  const ppl=[
+   {n:'Nick Carraway',i:'🎩',s:'Gatsby’s neighbor',came:true,x:'Nick arranged everything himself.'},
+   {n:'Henry C. Gatz',i:'👴',s:'Gatsby’s father',came:true,x:'He traveled from Minnesota after seeing the news. He shows Nick the self-improvement schedule young James wrote as a boy.'},
+   {n:'“Owl Eyes”',i:'👓',s:'Guest from the library',came:true,x:'The man from the library shows up in the rain, the only party guest who does.'},
+   {n:'The servants and the mailman',i:'✉️',s:'From West Egg',came:true,x:'A few of Gatsby’s servants and the West Egg postman came.'},
+   {n:'Daisy Buchanan',i:'🌼',s:'The woman he loved',came:false,x:'Daisy and Tom left town on a trip, leaving no address. She didn’t send a message or a flower.'},
+   {n:'Tom Buchanan',i:'🏈',s:'Daisy’s husband',came:false,x:'Tom is gone too, and doesn’t feel a bit sorry.'},
+   {n:'Meyer Wolfshiem',i:'🎲',s:'Gatsby’s “business” partner',came:false,x:'He sent a letter saying he couldn’t get mixed up in it.'},
+   {n:'Klipspringer',i:'🎹',s:'Lived in Gatsby’s house for months',came:false,x:'He called, but only to ask Nick to mail him a pair of tennis shoes he’d left behind.'}
+  ];
+  maxIns+=2;
+  actCard(`${SC.funeral()}<p class="task">Select everyone you think came to Gatsby’s funeral, then press Check.</p><div class="grid" id="pg">${shuffle(ppl.map((p,k)=>({...p,k}))).map(p=>`<button class="person" data-k="${p.k}"><span class="ic">${p.i}</span><b>${p.n}</b><small>${p.s}</small></button>`).join('')}</div><div class="row"><span class="small" id="selc">0 selected</span><button class="btn" id="chk">Check</button></div><div id="after"></div>`);
+  $$('#pg .person').forEach(b=>b.onclick=()=>{b.classList.toggle('sel');$('#selc').textContent=$$('#pg .person.sel').length+' selected';});
+  $('#chk').onclick=()=>{
+    let right=0;
+    $$('#pg .person').forEach(b=>{const p=ppl[+b.dataset.k], sel=b.classList.contains('sel'); b.disabled=true;
+      if(sel===p.came) right++;
+      b.classList.add(p.came?'ok':'no');
+      b.querySelector('small').innerHTML=`<b style="font-size:13px;color:${p.came?'var(--green)':'var(--red)'}">${p.came?'CAME':'DIDN’T COME'}${sel!==p.came?' ✗':' ✓'}</b>${p.x}`;
+    });
+    $('#chk').disabled=true;
+    const pts=right===8?2:(right>=6?1:0); if(pts){addIns(pts);ding();}else buzz();
+    $('#after').innerHTML=`<div class="fb"><div class="v ${pts?'good-t':'bad-t'}">${right} of 8 correct${pts?' · +'+pts+' insight':''}</div><p style="margin:0">Hundreds of people came to Gatsby’s parties. Almost no one came to his funeral.</p>${quoteBox(CH[8].quote.t,CH[8].quote.c)}<div class="row"><span></span><button class="btn" id="fin">Continue</button></div></div>`;
+    $('#fin').onclick=()=>wrapUp();
+  };
+}
+];
+
+/* ================= ENDING ================= */
+function ending(){
+  Music.play('blue');
+  ci=9; hud();
+  const pct=maxIns?insight/maxIns:0;
+  const R= pct>=.85?['Old Sport','Gatsby himself would throw you a party. You caught nearly everything Fitzgerald hid in the story.']
+        : pct>=.65?['Careful Narrator','Like Nick, you notice what other people miss. A strong reader of the novel.']
+        : pct>=.4 ?['Party Guest','You had a great time, but a few secrets slipped past you. Try another round.']
+        :          ['Lost in the Valley of Ashes','The fog got you this time. Reread a few chapters and take another run at it.'];
+  const lines=["And as I sat there brooding on the old, unknown world, I thought of Gatsby’s wonder when he first picked out the green light at the end of Daisy’s dock.","It eluded us then, but that’s no matter—tomorrow we will run faster, stretch out our arms farther…","So we beat on, boats against the current, borne back ceaselessly into the past."];
+  app.innerHTML=`<article class="card">${SC.boat()}
+    <div class="eyebrow">The Final Page</div><h2>Boats Against the Current</h2>
+    <div class="quote finalq">${lines.map((l,k)=>`<div class="qt ln" style="animation-delay:${.6+k*1.6}s;margin-bottom:6px">${l}</div>`).join('')}<cite class="ln" style="animation-delay:5.4s">Nick · Chapter 9</cite></div>
+    <div class="scorebox"><div><b>${insight}/${maxIns}</b>INSIGHT</div><div><b>${got.filter(Boolean).length}/9</b>SYMBOLS</div></div>
+    <div class="rank">${R[0]}</div><p style="text-align:center">${R[1]}</p>
+    <div class="history"><h3 style="color:var(--gold)">Talk About It</h3><ol style="margin:0;padding-left:20px">
+      <li>Is Gatsby “great”? Defend your answer with something he does in the novel.</li>
+      <li>Nick says he’s “one of the few honest people” he has ever known. Do you trust him as a narrator?</li>
+      <li>What does the green light mean at the start of the book, and what does it mean by the end?</li>
+      <li>Who is most responsible for Gatsby’s death? Rank Tom, Daisy, Wilson and Gatsby himself.</li>
+      <li>What would the American Dream look like for someone your age today?</li></ol></div>
+    <div class="row"><button class="btn ghost" id="symOpen">View All Symbols</button><button class="btn" id="again">Play Again</button></div></article>`;
+  scrollUp(); tone([392,494,587,784],'triangle');
+  $('#symOpen').onclick=()=>$('#symBtn').click();
+  $('#again').onclick=title;
+}
+
+title();
+</script>
+</body>
+</html>
